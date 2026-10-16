@@ -1,0 +1,54 @@
+{
+  "note": "Duotone presets: map the photo's luminance to four stops -- dark -> mid -> light -> paper. The light end equals the paper colour (near-white), so large bright areas such as sky and ground melt naturally into the paper -- this is the key step of 'not treating the photo as a background image'. tone_shift varies light/dark within one preset (e.g. darkening the second board of a collage).",
+  "method": "presets v1 (four control points: 0 -> shadow, 0.45 -> mid, 0.82 -> light, 1.0 -> paper)",
+  "presets": {
+    "azure-gold": {
+      "zh": "青金", "en": "Azure & Gold",
+      "desc": "Dunhuang azurite + golden brown; the temper of murals and the moon disc",
+      "shadow": "#16273F", "mid": "#2E6A9E", "light": "#A9C6DC",
+      "paper": "#EFE7D4", "accent": "#C9963F", "seal": "#A8332A",
+      "grain": 0.05,
+      "affinity": {"石青": 6, "石绿": 1.5, "赭石": 0.5, "土红": 0, "白": 1, "暗": 1.5}
+    },
+    "malachite-green": {
+      "zh": "石绿", "en": "Malachite Green",
+      "desc": "mineral green dominant; calm and clear, suited to landscape subjects",
+      "shadow": "#17362A", "mid": "#35795A", "light": "#A9CBB4",
+      "paper": "#F0EADA", "accent": "#C9A24A", "seal": "#A8332A",
+      "grain": 0.05,
+      "affinity": {"石青": 1.5, "石绿": 6, "赭石": 0.5, "土红": 0, "白": 1, "暗": 1.5}
+    },
+    "vermilion": {
+      "zh": "朱砂", "en": "Vermilion",
+      "desc": "the warmth of terracotta red and ochre; suited to festival and folk subjects",
+      "shadow": "#43180F", "mid": "#A84732", "light": "#DFA98A",
+      "paper": "#F3E9D8", "accent": "#C9963F", "seal": "#8E2418",
+      "grain": 0.05,
+      "affinity": {"石青": 0, "石绿": 0, "赭石": 3, "土红": 5, "白": 0.5, "暗": 2}
+    },
+    "ink": {
+      "zh": "墨", "en": "Ink",
+      "desc": "near-monochrome, 'ink in five shades'; suited to steles, artefacts and documentary photography",
+      "shadow": "#17140F", "mid": "#4E483C", "light": "#C2BCAC",
+      "paper": "#F1ECE0", "accent": "#A8842F", "seal": "#A8332A",
+      "grain": 0.06,
+      "affinity": {"石青": 0.5, "石绿": 0.5, "赭石": 1, "土红": 0.5, "白": 3, "暗": 5}
+    },
+    "amaranth": {
+      "zh": "绛紫", "en": "Amaranth",
+      "desc": "the printed temper of pagoda silhouettes and moon discs (see reference case: duotone + paper sky)",
+      "shadow": "#322B5E", "mid": "#6A66A8", "light": "#CFCBEA",
+      "paper": "#F2EDD6", "accent": "#E0BE4E", "seal": "#A8332A",
+      "grain": 0.05,
+      "affinity": {"石青": 4, "石绿": 1, "赭石": 0.5, "土红": 2, "白": 1, "暗": 2}
+    },
+    "umber-gold": {
+      "zh": "金褐", "en": "Umber & Gold",
+      "desc": "ochre-gold tone, warm and heavy; suited to archaeological and artefact subjects",
+      "shadow": "#35210E", "mid": "#9C6430", "light": "#DCBB80",
+      "paper": "#F2E8D4", "accent": "#B5822E", "seal": "#A8332A",
+      "grain": 0.05,
+      "affinity": {"石青": 0, "石绿": 0.5, "赭石": 6, "土红": 1, "白": 1, "暗": 2}
+    }
+  }
+}

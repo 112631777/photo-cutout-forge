@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>photo-cutout-forge · 书法排版母版（四版式 · 中英双语）</title>
+<!--
+  photo-cutout-forge 母版 · 书法版 / 英文版
+  流程位置：auto_compose.py 产出 bg.png（背景处理＋主体上纸）之后 → 本层只做「文字排版」。
+  铁律：先处理背景、再排文字 —— 本母版不碰背景。
+
+  字体（assets/fonts/，SIL OFL，随包分发）：
+    中文  ZhiMangXing  志莽行书 —— 主标题（默认）
+          MaShanZheng  马善政毛笔楷书 —— 副题 / 短句 / 印章
+          LiuJianMaoCao 柳建毛草 —— 可选，强调字
+    英文  Inter 400/500/600/700/800/900 —— 英文标题与信息层
+          （依据：参考海报「start business」逐字形比对 —— i 点为方、a 双层、
+            t 顶部斜切、Black 字重 → Inter。几何体 Futura/Poppins 的 i 点为圆、a 单层，可排除。）
+
+  四版式：body[data-comp] 取 hero-top / hero-right / hero-left / hero-centre
+    （必须与 auto_compose.py 的 plan.json layout 一致）
+
+  语言：body[data-lang="en"] 切英文排版（全站换 Inter，标题 Black、两行可各自撑满栏宽）。
+
+  机检仪器（勿删）：
+    ?pf-qa=bg  隐藏全部文字墨色，供 check_contrast 拍「无字背景」
+    #pf-boxes  导出文字元素矩形与计算样式，供 check_contrast 读取
+    ?comp=xxx  切换版式（无头渲染时用）
+    ?theme=deep 深底浅字主题（配 --bg-mode color 的深色底场；亦可直接写 body[data-theme="deep"]）
+    ?lang=en   英文排版主题（亦可直接写 body[data-lang="en"]；文案仍须在 HTML 里改）
+-->
+<style>
+  /* ---------- 书法字体（本地，随包） ---------- */
+  @font-face { font-family: "ZhiMangXing"; src: url("fonts/ZhiMangXing-Regular.ttf") format("truetype"); font-display: block; }
+  @font-face { font-family: "MaShanZheng"; src: url("fonts/MaShanZheng-Regular.ttf") format("truetype"); font-display: block; }
+  @font-face { font-family: "LiuJianMaoCao"; src: url("fonts/LiuJianMaoCao-Regular.ttf") format("truetype"); font-display: block; }
+
+  /* ---------- 英文（Inter，SIL OFL，随包） ---------- */
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Regular.ttf") format("truetype"); font-weight: 400; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Medium.ttf") format("truetype"); font-weight: 500; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Bold.ttf") format("truetype"); font-weight: 700; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-ExtraBold.ttf") format("truetype"); font-weight: 800; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Black.ttf") format("truetype"); font-weight: 900; font-display: block; }
+
+  :root {
+    --stage-w: 1500px;
+    --stage-h: 1875px;
+
+    --ink:     #2A231A;              /* 墨（暖黑） */
+    --ink-2:   #4A4034;
+    --ink-3:   #56503F;
+    --gold:    #6B4E1E;              /* 可读的金棕（文字用） */
+    --gold-lt: #C9A96A;              /* 装饰细线（非文字） */
+    --seal:    #8A3220;              /* 朱砂印面 */
+    --paper:   #F2E9D8;
+    --stage-bg:#EFE7D4;              /* 舞台底色（＝背景图纸面值；深底主题覆盖它） */
+    --rule:    rgba(122, 92, 34, 0.35);   /* meta 上分隔线 */
+    --cta-bg:  var(--ink);           /* CTA 底色（深底主题换金底） */
+    --cta-ink: var(--paper);         /* CTA 文字色 */
+
+    --f-brush:   "ZhiMangXing", "MaShanZheng", cursive;
+    --f-brush-2: "MaShanZheng", "ZhiMangXing", cursive;
+    --f-cjk-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+    --f-en:      "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17130E; }
+
+  .stage {
+    position: relative;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    overflow: hidden;
+    background: var(--stage-bg);     /* 默认＝预设纸色；深底主题（data-theme=deep）改为底场基色 */
+  }
+  .stage > .bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+
+  .type { position: absolute; inset: 0; color: var(--ink); }
+
+  /* ---------- 类型层构件 ---------- */
+  .presenter {
+    position: absolute;
+    font-family: var(--f-cjk-sans);
+    font-size: 26px; font-weight: 400;
+    letter-spacing: 0.44em; text-indent: 0.44em;
+    color: var(--ink-3);
+  }
+
+  .block {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .ornament { width: 132px; height: 2px; background: var(--gold-lt); opacity: 0.9; margin-bottom: 18px; }
+
+  .title {
+    font-family: var(--f-brush);
+    font-weight: 400;
+    font-size: 196px;
+    line-height: 1.04;
+    letter-spacing: 0.015em;
+    color: var(--ink);
+  }
+  .subtitle {
+    font-family: var(--f-brush-2);
+    font-size: 44px; font-weight: 400;
+    letter-spacing: 0.14em; text-indent: 0.14em;
+    color: var(--ink-2);
+    margin-top: 12px;
+  }
+  .tagline {
+    font-family: var(--f-brush-2);
+    font-size: 29px; font-weight: 400;
+    letter-spacing: 0.10em; text-indent: 0.10em;
+    color: var(--ink-3);
+    margin-top: 12px;
+  }
+
+  .info { display: flex; flex-direction: column; }
+
+  .meta {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .meta-row { display: flex; align-items: baseline; gap: 16px; font-family: var(--f-cjk-sans); }
+  .meta-row .k {
+    color: var(--gold);
+    font-size: 22px; letter-spacing: 0.22em;
+    min-width: 118px; text-align: right;
+  }
+  .meta-row .v { color: var(--ink-2); font-size: 24px; letter-spacing: 0.02em; white-space: nowrap; }
+
+  .cta {
+    margin-top: 22px;
+    display: inline-block;
+    padding: 13px 44px;
+    border-radius: 999px;
+    background: var(--cta-bg);
+    color: var(--cta-ink);
+    font-family: var(--f-cjk-sans);
+    font-size: 25px; font-weight: 500;
+    letter-spacing: 0.20em; text-indent: 0.20em;
+    text-decoration: none;
+    align-self: flex-start;
+  }
+
+  .seal {
+    position: absolute;
+    width: 104px; height: 104px;
+    background: var(--seal);
+    color: #F3E7D3;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center; justify-items: center;
+    padding: 6px;
+  }
+  .seal span {
+    font-family: var(--f-brush-2);
+    font-size: 38px; line-height: 1;
+    color: #F3E7D3;
+  }
+
+  /* ==================================================================
+     四版式：body[data-comp=…]（须与 plan.json 的 layout 一致）
+     文字位置与 references/composition-auto.md 的「文字区」表一一对应
+     ================================================================== */
+
+  /* 1 hero-top：主体横幅上置，题与展讯压左下，顶部一行为机构 */
+  [data-comp="hero-top"] .presenter { top: 3.0%; left: 0; right: 0; text-align: center; }
+  [data-comp="hero-top"] .block { left: 7%; width: 62%; bottom: 3.4%; }
+  [data-comp="hero-top"] .title { font-size: 196px; }
+  [data-comp="hero-top"] .seal { right: 7%; bottom: 26%; }
+
+  /* 2 hero-right：主体立柱右侧，题与展讯占左侧整栏，机构在左上 */
+  [data-comp="hero-right"] .presenter { top: 3.2%; left: 6.4%; }
+  [data-comp="hero-right"] .block { left: 7%; top: 26%; width: 43%; }
+  [data-comp="hero-right"] .title { font-size: 152px; }
+  [data-comp="hero-right"] .seal { left: 7%; bottom: 12%; }
+
+  /* 3 hero-left：镜像版 —— 主体立柱左侧，题与展讯占右侧整栏，右对齐 */
+  [data-comp="hero-left"] .presenter { top: 3.2%; right: 6.4%; text-align: right; }
+  [data-comp="hero-left"] .block {
+    right: 7%; top: 26%; width: 43%;
+    align-items: flex-end; text-align: right;
+  }
+  [data-comp="hero-left"] .title { font-size: 152px; }
+  [data-comp="hero-left"] .meta-row { justify-content: flex-end; }
+  [data-comp="hero-left"] .cta { align-self: flex-end; }
+  [data-comp="hero-left"] .seal { right: 7%; bottom: 12%; }
+
+  /* 4 hero-centre：主体居中浮岛，题与展讯居中压底 */
+  [data-comp="hero-centre"] .presenter { top: 3.0%; left: 0; right: 0; text-align: center; }
+  [data-comp="hero-centre"] .block {
+    left: 10%; right: 10%; bottom: 3.0%;
+    align-items: center; text-align: center;
+  }
+  [data-comp="hero-centre"] .title { font-size: 196px; }
+  [data-comp="hero-centre"] .meta { align-items: center; }
+  [data-comp="hero-centre"] .meta-row { justify-content: center; }
+  [data-comp="hero-centre"] .cta { align-self: center; }
+  [data-comp="hero-centre"] .seal { right: 6.8%; bottom: 24%; }
+
+  /* ==================================================================
+     英文排版：body[data-lang="en"] —— 全站换 Inter
+     字号按「栏宽 ÷ 实测字宽」定，不靠估（Inter-Black @100px：
+       VISIONS 4.28em ／ ON THE WALL 7.03em ／ DUNHUANG COLOR… 19.93em）。
+     两行标题用 .l1/.l2 各自撑满栏宽（仿参考海报「两行顶满」的排法）；
+     若标题只有一行，省略 .l1/.l2，直接用 .title 的 font-size。
+     注意：英文标题行数多，block 会变高 —— 撕纸/横幅版式下需确认 block
+     顶边仍落在背景素材区，别压到中缝。
+     ================================================================== */
+  body[data-lang="en"] {
+    --f-brush:   var(--f-en);
+    --f-brush-2: var(--f-en);
+  }
+  body[data-lang="en"] .presenter {
+    font-family: var(--f-en); font-weight: 600;
+    font-size: 21px; letter-spacing: 0.30em; text-indent: 0.30em;
+  }
+  body[data-lang="en"] .title {
+    font-family: var(--f-en);
+    font-weight: 900;
+    font-size: 104px;
+    /* ⚠ line-height 必须 ≥ 1.211（Inter 的 hhea 行高）。小于它时字形的
+       ascender/descender 会溢出 line box，h1 的 scrollHeight 随之大于
+       clientHeight，机检判 overflowY（实测踩坑：0.98 → 176px 行溢出 33px）。 */
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+  }
+  body[data-lang="en"] .title .l1 { display: block; font-size: 168px; }
+  body[data-lang="en"] .title .l2 { display: block; font-size: 104px; }
+  /* 英文标题占两行、比中文高，故收紧下方间距，把 block 顶边留在背景素材区内 */
+  body[data-lang="en"] .meta { margin-top: 16px; padding-top: 12px; gap: 6px; }
+  body[data-lang="en"] .cta { margin-top: 16px; }
+  body[data-lang="en"] .subtitle {
+    font-family: var(--f-en); font-weight: 700;
+    font-size: 34px; letter-spacing: 0.02em; text-indent: 0;
+  }
+  body[data-lang="en"] .tagline {
+    font-family: var(--f-en); font-weight: 400;
+    font-size: 25px; letter-spacing: 0.03em; text-indent: 0;
+  }
+  body[data-lang="en"] .meta-row .k,
+  body[data-lang="en"] .meta-row .v { font-family: var(--f-en); }
+  body[data-lang="en"] .meta-row .k { font-size: 18px; letter-spacing: 0.16em; min-width: 104px; }
+  body[data-lang="en"] .meta-row .v { font-size: 21px; letter-spacing: 0.01em; }
+  body[data-lang="en"] .cta {
+    font-family: var(--f-en); font-weight: 700;
+    font-size: 21px; letter-spacing: 0.14em; text-indent: 0.14em;
+  }
+
+  /* ==================================================================
+     深底浅字主题：body[data-theme="deep"]（配 auto_compose.py --bg-mode color）
+     深色底场上把墨色体系换成「鎏金题＋米白信息＋金底 CTA」；
+     --stage-bg 请改为与你的底场同值（此默认 #1F3F6E 为敦煌案例的石青浓底色）。
+     ================================================================== */
+  body[data-theme="deep"] {
+    --ink:     #E9C97F;              /* 主标题：鎏金 */
+    --ink-2:   #EFE6D0;              /* 副题／展讯值：米白 */
+    --ink-3:   #D3C5A6;              /* 短句／机构：暗米白 */
+    --gold:    #EDCB8B;              /* 标签：亮金 */
+    --gold-lt: #D9BC7E;              /* 装饰线／CTA 底色 */
+    --rule:    rgba(217, 188, 126, 0.45);
+    --cta-bg:  #D9BC7E;
+    --cta-ink: #23304F;
+    --stage-bg:#1F3F6E;
+  }
+
+  /* 机检仪器：?pf-qa=bg 时把「文字墨色」全部隐去（保留印面与按钮底色块） */
+  html.pf-qa-bg [data-text] { color: transparent !important; text-shadow: none !important; }
+  html.pf-qa-bg .seal span { color: transparent !important; }
+</style>
+</head>
+<body data-comp="hero-top">
+  <div class="stage">
+    <img class="bg" src="bg.png" alt="photo-cutout-forge 背景">
+
+    <div class="type">
+      <div class="presenter" data-text="presenter">城市文化中心</div>
+
+      <div class="block">
+        <div class="ornament"></div>
+        <h1 class="title" data-text="title-main">壁上万象</h1>
+        <div class="info">
+          <div class="subtitle" data-text="title-sub">敦煌色彩数字沉浸展</div>
+          <p class="tagline" data-text="tagline">在流动的色彩中，走近千年的想象</p>
+
+          <div class="meta">
+            <div class="meta-row">
+              <span class="k" data-text="label-1">展期</span>
+              <span class="v" data-text="value-1">2026年11月8日至2027年1月18日</span>
+            </div>
+            <div class="meta-row">
+              <span class="k" data-text="label-2">开放时间</span>
+              <span class="v" data-text="value-2">周二至周日 10:00–20:00</span>
+            </div>
+            <div class="meta-row">
+              <span class="k" data-text="label-3">地点</span>
+              <span class="v" data-text="value-3">城市文化中心 一层沉浸展厅</span>
+            </div>
+          </div>
+
+          <a class="cta" href="#" data-text="cta">预约观展</a>
+        </div>
+      </div>
+
+      <div class="seal" data-text="seal"><span>壁</span><span>上</span><span>万</span><span>象</span></div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var comp = q.get('comp');
+    if (comp) document.body.setAttribute('data-comp', comp);
+    var theme = q.get('theme');
+    if (theme) document.body.setAttribute('data-theme', theme);
+    var lang = q.get('lang');
+    if (lang) document.body.setAttribute('data-lang', lang);
+    if (q.get('pf-qa') === 'bg') document.documentElement.classList.add('pf-qa-bg');
+
+    function dump() {
+      var out = [];
+      document.querySelectorAll('[data-text]').forEach(function (el) {
+        var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        out.push({
+          role: el.getAttribute('data-text'),
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          color: cs.color,
+          fontSize: parseFloat(cs.fontSize),
+          writingMode: cs.writingMode || 'horizontal-tb',
+          fontFamily: cs.fontFamily,
+          text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+          overflowX: el.scrollWidth > el.clientWidth + 4,
+          overflowY: el.scrollHeight > el.clientHeight + 4
+        });
+      });
+      var s = document.createElement('script');
+      s.type = 'application/json';
+      s.id = 'pf-boxes';
+      s.textContent = JSON.stringify(out);
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') dump();
+    else window.addEventListener('load', dump);
+  })();
+  </script>
+</body>
+</html>

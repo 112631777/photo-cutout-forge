@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<!--
+  poster-column-master.html —— 「竖排不规则」母版（中英双语，含机检仪器）
+
+  为 case16（展示柜＋墙面投影）新增，第 5 套母版。适用：素材主体是**竖向一团**、
+  背景走「竖向不规则开窗」（kraft_window.py）的场合。
+
+  版式来源：参考海报《敦煌博物展》——大标题**竖排成一条错落的字柱**
+  （大小错落／左右错位／轻微旋转），旁边配竖排小字与细线标签，信息压在底部。
+
+  与其它母版的分工
+  ----------------
+  · 顶栏＋底栏 sandwich：撕纸类背景，上中下三段，最稳
+  · 中轴居中   axis：最克制，中段全留图像
+  · 左文大留白 editorial：信息量最小、留白最大
+  · **竖排不规则 column（本套）**：文字成柱、错落排布，配竖向开窗
+
+  字体与字号：沿用既定体系（中文标题志莽行书＋艺术字／副题·tagline 马善政楷书／
+  纯信息层 sans；英文全部 Inter，标题 Black 900）。细则见 references/calligraphy.md。
+
+  ⚠ 三条继承自前几套的硬约束（踩过的坑，别删）
+    1) `-webkit-text-stroke-color` 必须能被机检仪器清掉（见 html.pf-qa-bg 规则）
+    2) `line-height` 不得小于字体 hhea 行高（拉丁≈1.21、中文书法体≈1.4）
+    3) `.art` 的 transform 溢出会被 Chrome 算进 scrollWidth/Height → 用 padding 撑开
+-->
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>photo-cutout-forge · 竖排不规则母版</title>
+<style>
+  /* ---------- 字体（SIL OFL，随包） ---------- */
+  @font-face { font-family: "ZhiMangXing";  src: url("fonts/ZhiMangXing-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "MaShanZheng";  src: url("fonts/MaShanZheng-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "LiuJianMaoCao"; src: url("fonts/LiuJianMaoCao-Regular.ttf") format("truetype"); font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Regular.ttf")   format("truetype"); font-weight: 400; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Medium.ttf")    format("truetype"); font-weight: 500; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-SemiBold.ttf")  format("truetype"); font-weight: 600; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Bold.ttf")      format("truetype"); font-weight: 700; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-ExtraBold.ttf") format("truetype"); font-weight: 800; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Black.ttf")     format("truetype"); font-weight: 900; font-display: block; }
+
+  :root {
+    --stage-w: 1500px;
+    --stage-h: 1875px;
+
+    --ink:   #17130E;
+    --ink-2: #2A231A;
+    --stage-bg: #EFE7D4;
+
+    /* 英文全部 Inter（2026-10-11 老大指定：旧版定稿的 Inter Black 撑画面） */
+    --f-en: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    /* 回退链只接同类书法体，末端不写 cursive */
+    --f-zh-brush:  "ZhiMangXing", "MaShanZheng", "LiuJianMaoCao";
+    --f-zh-brush2: "MaShanZheng", "ZhiMangXing", "LiuJianMaoCao";
+    --f-zh-sans:   "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+
+    /* 字号层级（沿用既定体系；竖排标题取介于 sandwich 220 与 axis 152 之间的 190） */
+    --size-title: 190px;
+    --size-sub:   34px;
+    --size-tag:   30px;
+    --size-mini:  24px;
+    --size-foot:  30px;
+    --size-org:   26px;
+    --size-cta:   28px;
+    --track-sub:  0.16em;
+    --track-tag:  0.12em;
+    --track-mini: 0.34em;
+    --track-foot: 0.06em;
+    --track-org:  0.30em;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17130E; }
+
+  .stage {
+    position: relative;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    overflow: hidden;
+    background: var(--stage-bg);
+  }
+  .stage > .bg {                     /* 背景图（bg.png = 材质＋竖向开窗） */
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .type { position: absolute; inset: 0; color: var(--ink); }
+
+  /* ---------- 护读：浅色描边 ＋ 柔光（材质底杂度高，必须托出笔画） ---------- */
+  .halo {
+    -webkit-text-stroke: 1.8px rgba(248, 244, 236, 0.92);
+    paint-order: stroke fill;
+    text-shadow: 0 0 8px rgba(248, 244, 236, 0.65), 0 0 20px rgba(248, 244, 236, 0.32);
+  }
+  .title-col { -webkit-text-stroke-width: 2.4px; }
+
+  /* ---------- 艺术字：scripts/art_title.py 生成的 span 效果 ----------
+     参考海报的做法：**大小错落 ＋ 纵向拉长 ＋ 左右/高低错位 ＋ 轻微旋转**。
+     字体不变（仍是书法体），只改效果；参数由脚本生成（seed 可复现）。
+     ⚠ `transform-origin: 50% 82%`（以字脚为支点）：拉长向上长，不顶破基线。
+     ⚠ padding 撑开 ＋ 等量负 margin：transform 溢出不进 scrollWidth/Height。 */
+  .art {
+    display: flex; align-items: flex-start;
+    padding: 0.15em 0.12em;
+    margin: -0.15em -0.12em;
+  }
+  .art.v {                            /* ★ 竖排：字柱，逐字向下 */
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .art > span {
+    display: inline-block;
+    font-size: calc(1em * var(--s, 1));
+    transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)) scaleY(var(--sy, 1));
+    transform-origin: 50% 82%;
+  }
+  .title-col.art { letter-spacing: 0; }
+  .art.silhouette > span { color: transparent; -webkit-text-stroke: 3px var(--ink); }
+
+  /* ================= 主办（左上角一行小字）================= */
+  .org {
+    position: absolute;
+    left: 96px; top: 104px;
+    font-size: var(--size-org);
+    letter-spacing: var(--track-org);
+    text-indent: var(--track-org);
+    color: var(--ink-2);
+  }
+
+  /* ================= 竖排小标签（学参考的「壁画展／瓷器展」）=================
+     一条细竖线 ＋ 竖排小字；纯信息层，允许 sans。 */
+  .side { position: absolute; left: 800px; top: 300px; display: flex; gap: 56px; }
+  .mini {
+    writing-mode: vertical-rl;
+    font-size: var(--size-mini);
+    letter-spacing: var(--track-mini);
+    color: var(--ink-2);
+    padding-top: 74px;                /* 给上方的细线让位 */
+    position: relative;
+  }
+  .mini::before {                     /* 细竖线：由字顶向上引出 */
+    content: ""; position: absolute;
+    left: 50%; top: 0; width: 2px; height: 58px;
+    background: currentColor; opacity: 0.75;
+    transform: translateX(-50%);
+  }
+
+  /* ================= 竖排副题 ／ tagline（传播语 → 楷书）================= */
+  .col-sub, .col-tag {
+    position: absolute;
+    writing-mode: vertical-rl;
+    color: var(--ink);
+  }
+  .col-sub { left: 936px; top: 268px; font-size: var(--size-sub); letter-spacing: var(--track-sub); }
+  .col-tag { left: 1010px; top: 268px; font-size: var(--size-tag); letter-spacing: var(--track-tag); color: var(--ink-2); }
+
+  /* ================= 竖排大标题（字柱，错落）=================
+     ★ 2026-10-11 改：标题由「一柱 4 字」改为**两条错落字柱**（右起读），
+     学参考海报《敦煌博物展》的「敦煌 ｜ 博物展」双列错落——更紧凑、
+     也便于放进斜向取形留出的纸面区。
+     容器给足高度并**垂直居中**：中文两列各 2 字 ≈ 500px、英文三行 ≈ 550px。 */
+  .title-wrap {
+    position: absolute;
+    left: 1090px; top: 15%;
+    height: 68%;
+    display: flex; align-items: center;
+    flex-direction: row-reverse;      /* 竖排右起：第一列在最右 */
+    gap: 30px;
+    font-size: var(--size-title);
+    line-height: 1.30;
+  }
+  .title-wrap .tcol {
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .title-wrap.art { padding: 0.15em 0.12em; margin: -0.15em -0.12em; }
+  /* 英文：一列三行（拉丁竖排会旋转，读着别扭） */
+  body[data-lang="en"] .title-wrap { flex-direction: column; align-items: flex-start; }
+  .title-wrap .l1, .title-wrap .l2, .title-wrap .l3 { display: block; white-space: nowrap; }
+  .title-wrap .l1 { margin-left: 26px; }
+  .title-wrap .l2 { margin-left: 108px; }
+  .title-wrap .l3 { margin-left: 0; }
+
+  /* ================= 底部信息（两端撑满，学 sandwich 的骨架特征）=================
+     ⚠ 展讯必须**完整**（副题／tagline／展期／时间／地点／预约都在版上）。 */
+  .foot {
+    position: absolute;
+    left: 96px; right: 96px; bottom: 5.2%;
+    border-top: 2px solid rgba(23, 19, 14, 0.28);
+    padding-top: 22px;
+    display: flex; flex-direction: column; gap: 14px;
+    font-size: var(--size-foot);
+    letter-spacing: var(--track-foot);
+    white-space: nowrap;
+  }
+  .foot .row { display: flex; align-items: baseline; justify-content: space-between; gap: 40px; }
+  .cta {
+    display: inline-block;
+    padding: 13px 38px; border-radius: 999px;
+    background: var(--ink); color: #F2E9D8;
+    font-size: var(--size-cta);
+    letter-spacing: 0.14em; text-indent: 0.14em;
+    text-decoration: none;
+  }
+
+  /* ================= 语言 ================= */
+  /* 中文：标题行书／传播语楷书／纯信息 sans */
+  body[data-lang="zh"] .title-wrap { font-family: var(--f-zh-brush); }
+  body[data-lang="zh"] .title-col { -webkit-text-stroke-width: 2.4px; }
+  body[data-lang="zh"] .col-sub,
+  body[data-lang="zh"] .col-tag {
+    font-family: var(--f-zh-brush2); font-weight: 400;
+  }
+  body[data-lang="zh"] .org,
+  body[data-lang="zh"] .side,
+  body[data-lang="zh"] .foot { font-family: var(--f-zh-sans); font-weight: 600; }
+
+  /* 英文：全部 Inter（标题 Black 900） */
+  body[data-lang="en"] .title-wrap { font-family: var(--f-en); font-weight: 900; letter-spacing: 0.03em; }
+  body[data-lang="en"] .col-sub,
+  body[data-lang="en"] .col-tag,
+  body[data-lang="en"] .org,
+  body[data-lang="en"] .side,
+  body[data-lang="en"] .foot { font-family: var(--f-en); }
+  body[data-lang="en"] .org { font-weight: 600; letter-spacing: 0.26em; }
+  body[data-lang="en"] .foot { font-weight: 600; }
+  /* 英文标题的层级：**两个档位拉开**（学模板：大字 ≫ 次字）——70 / 140 */
+  body[data-lang="en"] .title-wrap { --size-title: 140px; left: 1000px; }
+  body[data-lang="en"] .title-wrap .l1,
+  body[data-lang="en"] .title-wrap .l2 { font-size: 66px; font-weight: 700; }
+  body[data-lang="en"] .title-wrap .l3,
+  body[data-lang="en"] .title-wrap .l4 { font-size: 132px; }
+
+  /* ================= 斜向取形版式（body[data-diag]，2026-10-11 加）=================
+     配套 band_mask `--shape diag-pinch --rotate 38`：开的是「右上→左下、两端宽中间收腰」
+     的斜块。实测 6×6 覆盖网格：**左上 0% ／ 右下 0% ／ 右上与左下 100%** ——
+     右上角与左下角被图占住，**左上角与右下角各留出一块纸面**。
+     → 文字按「左上放传播语与小标签／右下放标题与展讯」布置，整块避开斜块。
+     ⚠ 坐标不是估的：`run_*.py` 都跑「文字压窗口」检查（>2% 判压）＋机检的
+     **背景 P5（WCAG 相对亮度）** —— 本案实测**右下角 y≥1700 处材质有暗斑（P5≈1）**，
+     黑字放上去必挂，所以底栏整体上移并收窄到 x 760..1260。 */
+  body[data-diag] .org        { top: 150px; }
+  body[data-diag] .side       { left: 96px;  top: 220px; }
+  /* ★ 层级拉开（2026-10-11 老大指出「标题大一点，其余像模板一样不一样」）——
+     学参考 115 的档位：**大标题 ≫ 传播语 > 副题 > 小标签 ≈ 信息**，档与档之间留出明显跳跃。 */
+  body[data-diag] .col-sub    { left: 560px; top: 220px; font-size: 30px; }   /* 副题：33.6→30 */
+  /* 中文 tagline 改**横排两行**、放大到 46px（模板里「带你领略千年／非遗文化之美」就是这一档） */
+  body[data-diag] .col-tag    { left: 96px; top: 442px; width: 470px;
+                                writing-mode: horizontal-tb; line-height: 1.38; font-size: 46px; }
+  body[data-diag] .mini       { font-size: 26px; }
+  body[data-diag] .title-wrap { left: 1030px; top: 53.8%; height: 36%; }
+  /* 两条字柱**大小不同**（学模板「敦煌」＞「博物展」）：右柱（title-a）大、左柱次之 */
+  body[data-diag] .title-wrap .tcol:nth-child(1) { font-size: 185px; }
+  body[data-diag] .title-wrap .tcol:nth-child(2) { font-size: 167px; }
+  /* transform（--dx ±40、scaleY 1.32）的溢出要留够，否则机检判 overflow */
+  body[data-diag] .tcol.art   { padding: 0.34em 0.24em; margin: -0.34em -0.24em; }
+  /* ★ 底栏改**单列**：右下纸面只有 ~680px 宽，两段并排会溢出到画布外
+     （实测：f-2 溢出到 x1618，落进画布外的 body 底色 → 机检 P5=0、CR 1.14）。
+     并给信息行也做层级：**展期最重（36）→ 时间/地点（28）→ 按钮（30）**。 */
+  body[data-diag] .foot       { left: 760px; right: 240px; bottom: 2.6%; }
+  body[data-diag] .foot .row  { justify-content: flex-start; }
+  body[data-diag] .foot .row:nth-child(1) span { font-size: 36px; }
+  body[data-diag] .foot .row:nth-child(2) span,
+  body[data-diag] .foot .row:nth-child(3) span { font-size: 28px; color: var(--ink-2); }
+  body[data-diag] .cta        { font-size: 30px; }
+  /* 英文：左上窄块（会折行）＋右下四行错落 */
+  body[data-lang="en"][data-diag] .org     { left: 96px; right: auto; text-align: left;
+                                             width: 520px; white-space: normal; line-height: 1.35; }
+  body[data-lang="en"][data-diag] .col-sub { left: 96px; top: 250px; width: 520px;
+                                             line-height: 1.35; font-size: 30px; }
+  body[data-lang="en"][data-diag] .col-tag { left: 96px; top: 356px; width: 520px;
+                                             line-height: 1.35; font-size: 40px; }
+  body[data-lang="en"][data-diag] .side    { left: 96px; top: 566px; }
+  /* 英文标题块要**落到 y≥1005**：斜块边缘在 y 937..994 还压着 x 930..1086（实测 2.1%）。
+     ⚠ EN 的 .title-wrap 是 **column 方向** → `align-items` 管的是横向，
+     纵向上没有居中（`justify-content` 默认 flex-start）→ 内容**贴在容器顶部**，
+     所以位置直接由 `top` 决定，不要按"居中"去算。 */
+  body[data-lang="en"][data-diag] .title-wrap { left: 1000px; top: 56%; height: 40%; }
+  /* ⚠ 尺寸统一由「语言」段给（70/70/140/140 两档），这里**只给错位**——
+     两处都写字号会互相覆盖（这个坑今天踩过一次）。 */
+  body[data-lang="en"][data-diag] .title-wrap .l1 { margin-left: 0; }
+  body[data-lang="en"][data-diag] .title-wrap .l2 { margin-left: 62px; }
+  body[data-lang="en"][data-diag] .title-wrap .l3 { margin-left: 0; }
+  body[data-lang="en"][data-diag] .title-wrap .l4 { margin-left: 24px; }
+  /* 英文的传播语改用横排窄块（拉丁竖排会旋转，读着别扭）——
+     位置放在开窗上方的素材区，两个层级：副题 600 ／ tagline 400 */
+  body[data-lang="en"] .col-sub,
+  body[data-lang="en"] .col-tag {
+    writing-mode: horizontal-tb;
+    left: 96px; width: 900px; text-align: left;
+  }
+  body[data-lang="en"] .col-sub { top: 176px; font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  body[data-lang="en"] .col-tag { top: 232px; font-size: 24px; font-weight: 400; }
+  body[data-lang="en"] .side { left: 96px; top: 306px; gap: 40px; }
+  body[data-lang="en"] .mini {
+    writing-mode: horizontal-tb; padding-top: 0; padding-left: 0;
+    font-size: 24px; font-weight: 600; letter-spacing: 0.20em;
+  }
+  body[data-lang="en"] .mini::before { display: none; }
+  body[data-lang="en"] .org { left: auto; right: 96px; text-align: right; }
+
+  /* ================= 招式 E：底部裁切超大英文（学参考 06 竹编艺术 / 07 徽州灯彩）=================
+     Inter Black 超大、左右顶满、**下半截被下缘裁掉** —— 一条"压住画面"的字带。
+     **默认不出现**，需要时由 run 脚本插入：
+       `<div class="giant" data-text="giant"><span>LANTERN ART</span></div>`
+
+     ★ 正确做法（2026-10-11 试了三版才定）：**外层容器负责裁切，内层 span 负责写字**。
+       外层 `overflow:hidden` ＋ 高度略小于字高、它的盒**仍在画布内**；
+       内层用 `translateY` 下移，让下半截被外层裁掉。
+       ⚠ 若直接把字放在外层并让外层 `bottom` 取负值，元素盒会越出画布下缘 →
+       机检在画布外取样 → **P5=0、CR≈1.14**（看着像"底太暗"，其实是越界）。
+     ⚠ 三条实测：
+       ① **字号按文案量**：`字号 = 版心(1500−2×56=1388) ÷ (getlength(文案)/1000)`。
+          实测 BAMBOO WEAVING 9.934em→139px、LANTERN ART 7.213em→192px、HORSE & RIDER 7.527em→184px。
+          写死 208px 时文案 1810px 宽 → `overflowX`。
+       ② **行高 ≥ Inter 的 win 度量**：1.21 仍判 `overflowY`，Inter Black 要用 **1.32**
+          （与 axis 标题同一个坑）。
+       ③ **不能横跨到图像上**：字带压到暗底/图上时 P5 掉到 0（实测 CR 1.14 挂）→
+          把它限制在**纸面区**（改 left/right），或压在暗底时改用浅色字并复查对比。
+       ④ **⚠ 它是唯一"允许 ovY"的招式**：裁切靠容器 overflow:hidden，
+          被裁掉的字形必然让 `scrollHeight > clientHeight` → **机检会报 giant(溢出)，这是预期**。
+          判据改为**目检**：下半截被下缘规整切掉、字带左右顶满即可。字号按文案量后
+          `overflowX` 不应出现（出现说明字号超了）。 */
+  .giant {
+    position: absolute; left: 56px; right: 56px; bottom: 0;
+    overflow: hidden;
+    height: calc(var(--size-giant, 139px) * 0.74);
+    font-size: var(--size-giant, 139px);   /* 容器也要给字号：机检按元素 computed 字号判 3.0/4.5 门槛 */
+  }
+  .giant > span {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    font-size: var(--size-giant, 139px);
+    line-height: 1.32;
+    letter-spacing: 0.005em;
+    text-align: center; white-space: nowrap;
+    transform: translateY(28%);        /* 下移 → 下半截被外层裁掉 */
+  }
+
+  /* ================= 满幅铺底版式（body[data-full]，2026-10-12 加）=================
+     学参考 06/07/13（竹编艺术／徽州灯彩／非遗纸版）：**照片铺满整张画布**，文字直接压在照片上，
+     不再开窗。老大原话：「尽可能让海报铺满，像这几张一样」。
+
+     ⚠⚠ 满幅时照片的明暗**不可控** → 浅色字必须靠 `kraft_full.py --scrim` 压出暗底子。
+     实测本案：左上幕墙 P95=158（WCAG 线亮度），浅字 CR 只有 1.31、深字 3.03 —— **两头都不达标**；
+     用 scrim 把最亮处压到 ≤37（≈sRGB 105）后浅字才够 4.5:1。
+     ⚠ 浅字模式：文字取浅色，护读描边**反过来用深色**（不要沿用深字那套浅描边）。 */
+  body[data-full] .org { left: auto; right: 100px; top: 104px; }
+
+  /* ★ 浅字模式（`data-dark`，2026-10-12 拆出来）：
+     压在**暗底照片**上时用浅色字（学参考 06/07 —— 它们能压浅字是因为底子本来暗）。
+     压在**浅材质**上时不要加这个标记，走默认深墨色。
+     ⚠ 浅字模式必须**逐个元素**改色：基类里 .col-sub／.col-tag／.mini／.org 都写死了 --ink/--ink-2，
+       只改 .type 的 color 会被它们盖掉（实测 CR 只剩 1.03，等于深字压在暗底上）。 */
+  body[data-dark] .type { color: #F2E9D8; }
+  body[data-dark] .col-sub,
+  body[data-dark] .col-tag,
+  body[data-dark] .mini,
+  body[data-dark] .org { color: #F2E9D8; }
+  body[data-dark] .col-tag { color: rgba(242, 233, 216, 0.88); }
+  body[data-dark] .halo {
+    -webkit-text-stroke-color: rgba(18, 14, 10, 0.62);
+    text-shadow: 0 2px 10px rgba(10, 8, 6, 0.55), 0 0 26px rgba(10, 8, 6, 0.35);
+  }
+  /* 左上：竖排标题（单列字柱，学 06/07） */
+  /* ★ 横排错落标题，放在**下方材质空白区**（2026-10-12 老大定）：
+     ① 标题从竖排改**横排**（学参考 13/12 的「非遗文化之美」那种大小错落）；
+     ② 位置在材质空白处 —— **大块文字不压抠出来的图案**（新规矩）。
+     实测本案空白网格：窗口带横贯 y≈700–940，**y≥1187 起整条 100% 是材质**，
+     右上有小块（x400–1000, y0–250）；标题取下方整条（2026-10-12 二轮：再**往右上**挪，x520 起、y63.2% —— 上边离撕口下缘（中部 ~1122）留 60px 余量，右边不碰信息行）。 */
+  body[data-full] .title-wrap { left: 520px; top: 63.2%; height: auto;
+                                flex-direction: column; align-items: flex-start; }
+  body[data-full] .title-wrap .tcol:nth-child(1) { font-size: 196px; }
+  /* 中文＝横排（span 并排）；英文仍是两行，保持纵向 */
+  body[data-lang="zh"][data-full] .title-wrap .tcol { flex-direction: row; align-items: flex-start; }
+  /* 字距**略微放大**（老大 2026-10-12：「间距可以略微放大点」）—— 用容器的 letter-spacing，
+     比在 span 上给 margin 稳（不会把 transform 的溢出算进去）。 */
+  body[data-lang="zh"][data-full] .title-wrap .tcol.art { letter-spacing: 0.08em; }
+  body[data-full] .tcol.art { padding: 0.30em 0.22em; margin: -0.30em -0.22em; }
+  /* 右侧：竖排副题 ＋ tagline（学 06/07 右缘那两行小字） */
+  body[data-full] .col-sub { left: 1272px; top: 150px; font-size: 34px; writing-mode: vertical-rl; }
+  body[data-full] .col-tag { left: 1350px; top: 150px; font-size: 30px; writing-mode: vertical-rl; }
+  /* 左缘：两条竖排小标签＋细线（学 06/07 的「国家级非物质文化遗产／经纬入艺」） */
+  body[data-full] .side { left: 96px; top: 1160px; }
+  /* 底栏：信息压在暗地面上；giant 在最底、被下缘裁切（学 06/07 的 BAMBOO WEAVING） */
+  body[data-full] .foot { left: 96px; right: 96px; bottom: 13.0%; }
+  body[data-full] .foot .row { justify-content: space-between; }
+  body[data-full] .giant { left: 96px; right: 96px; --size-giant: 132px; }
+  /* 英文：标题改**两行横排错落**（拉丁竖排会旋转），其余同位 */
+  body[data-lang="en"][data-full] .title-wrap { left: 520px; top: 63.2%; height: auto; }
+  /* ⚠ 英文标题也要落在**下方材质空白区**（大字不压抠图图案）—— 之前它还留在左上压着壁画。 */
+  body[data-lang="en"][data-full] .title-wrap .l1,
+  body[data-lang="en"][data-full] .title-wrap .l2 { font-size: 112px; }
+  body[data-lang="en"][data-full] .title-wrap .l1 { margin-left: 0; }
+  body[data-lang="en"][data-full] .title-wrap .l2 { margin-left: 52px; }
+  body[data-lang="en"][data-full] .col-sub,
+  body[data-lang="en"][data-full] .col-tag {
+    /* ⚠ 框要**收进右缘那条托底窄带内**（veil x1150–1500）—— 之前的 x1096 左边缘露在带外，
+       机检就抓到了那部分亮底（EN tagline CR 3.85 挂）。 */
+    writing-mode: horizontal-tb; left: 1160px; width: 330px; text-align: right;
+  }
+  body[data-lang="en"][data-full] .col-sub { top: 300px; font-size: 30px; writing-mode: horizontal-tb; }
+  body[data-lang="en"][data-full] .col-tag { top: 404px; font-size: 24px; writing-mode: horizontal-tb; }
+    body[data-lang="en"][data-full] .mini { writing-mode: horizontal-tb; padding-top: 0; }
+  body[data-lang="en"][data-full] .mini::before { display: none; }
+  body[data-lang="en"][data-full] .org { left: auto; right: 100px; text-align: right; }
+
+  /* 机检仪器：?pf-qa=bg 时隐去文字墨色与描边。
+     ⚠ `-webkit-text-stroke-color` **必须一起清** —— 只清 color 的话，浅色描边会留在
+     「无字背景」里被 check_contrast 当成背景亮度，全部数值虚高（实测踩过）。 */
+  html.pf-qa-bg [data-text] {
+    color: transparent !important;
+    -webkit-text-stroke-color: transparent !important;
+    text-shadow: none !important;
+  }
+</style>
+</head>
+<body data-lang="zh" data-column>
+  <div class="stage">
+    <img class="bg" src="bg.png" alt="photo-cutout-forge 背景">
+
+    <div class="type halo">
+      <div class="org" data-text="org">长沙博物馆 × 城市文化中心</div>
+
+      <!-- 竖排小标签（学参考的「壁画展／瓷器展」） -->
+      <div class="side">
+        <span class="mini" data-text="m-1">唐三彩</span>
+        <span class="mini" data-text="m-2">胡人俑</span>
+      </div>
+
+      <!-- 传播语：竖排（中文）／横排窄块（英文，见语言块） -->
+      <div class="col-sub" data-text="sub">唐三彩马与胡人俑特展</div>
+      <div class="col-tag" data-text="tag">在灯影与彩釉之间，看见盛唐的一骑</div>
+
+      <!-- 竖排大标题：两条错落字柱（右起读）。中文＝艺术字 span（run 脚本生成）；
+           英文＝一条柱内三行错落。 -->
+      <div class="title-wrap">
+        <div class="tcol art v" data-text="title-a">千年</div>
+        <div class="tcol art v" data-text="title-b">一骑</div>
+      </div>
+
+      <!-- 底部信息：两行，各自两端撑满 -->
+      <div class="foot">
+        <div class="row">
+          <span data-text="f-1">展期 2027.3.18 – 2027.6.20</span>
+          <span data-text="f-2">周二至周日 10:00–20:00</span>
+        </div>
+        <div class="row">
+          <span data-text="f-3">城市文化中心 · 一层沉浸展厅</span>
+          <a class="cta" href="#" data-text="cta">预约观展</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var lang = q.get('lang');
+    if (lang) document.body.setAttribute('data-lang', lang);
+    if (q.get('pf-qa') === 'bg') document.documentElement.classList.add('pf-qa-bg');
+
+    function dump() {
+      var out = [];
+      document.querySelectorAll('[data-text]').forEach(function (el) {
+        var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        out.push({
+          role: el.getAttribute('data-text'),
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          color: cs.color,
+          fontSize: parseFloat(cs.fontSize),
+          writingMode: cs.writingMode || 'horizontal-tb',
+          fontFamily: cs.fontFamily,
+          text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+          overflowX: el.scrollWidth > el.clientWidth + 4,
+          overflowY: el.scrollHeight > el.clientHeight + 4
+        });
+      });
+      var s = document.createElement('script');
+      s.type = 'application/json';
+      s.id = 'pf-boxes';
+      s.textContent = JSON.stringify(out);
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') dump();
+    else window.addEventListener('load', dump);
+  })();
+  </script>
+</body>
+</html>

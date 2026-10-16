@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>photo-cutout-forge · 中轴母版（汉字／英文交替）</title>
+<!--
+  poster-axis-master.html - master template for the "centred axis (Chinese chars / English alternating)" skeleton
+  Source: ORIENTAL ZEN reference (provided by the lead on 2026-10-10; already abstracted into
+        cultural-event-key-visual/references/composition-library.md, appendix "Skeleton 2" on 10-09).
+
+  Structure (one axis running top to bottom):
+        DUN          <- single glyph (Chinese, calligraphic)    ↑
+      WALL / VISION  <- main title (two lines)                  | axis text zone (sits in the upper material band)
+        HUANG        <- single glyph (Chinese, calligraphic)    ↓
+      ...mid-section left entirely for the image (torn-paper seam / visual subject)...
+        exhibition info, two lines      <- small text, still centred on the axis      <- bottom info
+  The two single glyphs top and bottom **form one word** (e.g. the reference pairs DONG + FANG into "East"; this version pairs DUN + HUANG into "Dunhuang"),
+  the word in the middle is its name - this is the key character of the skeleton, not just two decorative glyphs placed at random.
+
+  Division of labour with the other two masters:
+    poster-cutout-master.html  four layouts, text pinned to a corner of the frame
+    poster-sandwich-master.html top bar + bottom bar, text in the two bands above and below
+    poster-axis-master.html    this master, text on one central axis, **most restrained, least information**
+
+  Fonts (assets/fonts/, bundled):
+    Chinese  ⚠ Hard requirement 2 "calligraphic art font, not a regular font":
+            title/single glyph ZhiMangXing Zhimang Xingshu; subtitle MaShanZheng brush regular script; info layer sans.
+            **Do not set Chinese titles in Huawen Zhongsong / Song** (this skill has hit that pitfall).
+    English  Inter (SIL OFL) - from 2026-10-11 the English layer switched entirely to Inter (same as the old finalised version),
+            EB Garamond serif proved "too thin, cannot hold the frame" and is dropped (its @font-face kept for now).
+
+  ⚠ Legibility plating: torn-paper / rock-wall backgrounds have very low P5, **text must get a light stroke** (.halo), or small text smears.
+    The stroke only improves human readability, not the machine-check numbers - the text colour itself stays pure black.
+
+  Usage: <body data-lang="zh|en" data-axis>   machine check ?pf-qa=bg / #pf-boxes
+-->
+<style>
+  /* ---------- Chinese calligraphic fonts (local, bundled) ---------- */
+  @font-face { font-family: "ZhiMangXing";  src: url("fonts/ZhiMangXing-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "MaShanZheng";  src: url("fonts/MaShanZheng-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "LiuJianMaoCao"; src: url("fonts/LiuJianMaoCao-Regular.ttf") format("truetype"); font-display: block; }
+
+  /* ---------- English (EB Garamond, SIL OFL, bundled) ---------- */
+  @font-face {
+    font-family: "EB Garamond";
+    src: url("fonts/EBGaramond-Variable.ttf") format("truetype");
+    font-weight: 400 900;
+    font-display: block;
+  }
+
+  :root {
+    --stage-w: 1500px;
+    --stage-h: 1875px;
+
+    --ink:      #000000;
+    --ink-2:    #14100B;
+    --halo:     rgba(246, 242, 232, 0.88);
+    --halo-soft:rgba(246, 242, 232, 0.50);
+    --stage-bg: #EFE7D4;
+
+    /* ★ English font switch (specified by the lead on 2026-10-11): the English reference uses the old finalised version (Inter Black),
+     EB Garamond serif proved "too thin, cannot hold the frame" - the English layer switched entirely to Inter. */
+  --f-en: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    /* fallback chain links only same-family calligraphic faces, never ending in cursive (otherwise a load failure silently degrades to a regular font) */
+    --f-zh-brush:  "ZhiMangXing", "MaShanZheng", "LiuJianMaoCao";
+    --f-zh-brush2: "MaShanZheng", "ZhiMangXing", "LiuJianMaoCao";
+    --f-zh-sans:   "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+
+    /* Position and size of the axis text zone.
+       Leave enough on the top edge: the text block's bottom must not press the seam (Dunhuang case seam top = canvas y539).
+       This version measured block height ≈430px, top 4.5%(84) -> bottom edge 514, still 25px of margin from the seam. */
+    --axis-top: 4.5%;
+    /* Font-size principle (revised after the group review): **do not copy the reference poster's sizes**, set by "how large the type zone can hold".
+       This version is one notch larger overall than the first, and the title changed from two lines to one to free up space. */
+    --size-glyph: 74px;    /* 66->74 */
+    --size-main:  108px;   /* 92->108 */
+    --size-foot:  28px;    /* 24->28 */
+    --lh-main:    1.30;   /* >= font hhea line height: Latin ≈1.21, Chinese calligraphic ≈1.4 */
+    --track-main: 0.10em;
+    --track-glyph: 0.20em;
+    --track-foot: 0.14em;
+    --gap: 18px;          /* gap between single glyph and title */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17130E; }
+
+  .stage {
+    position: relative;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    overflow: hidden;
+    background: var(--stage-bg);
+  }
+  .stage > .bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .type { position: absolute; inset: 0; color: var(--ink); }
+
+  /* ---------- Legibility plating: light-colour stroke + soft glow ----------
+     ⚠ Torn-paper / rock-wall grounds are **highly textured** (Dunhuang measured std 19-29 inside the glyph box),
+     thin black strokes "smear" into the texture - a flaw the **contrast numbers cannot reveal**,
+     so the strokes need a light-colour outline to lift them out of the busy ground.
+     `paint-order: stroke fill` is the key: it paints the stroke **under** the glyph body,
+     otherwise it eats into the strokes and the glyph gets thinner. */
+  .halo {
+    -webkit-text-stroke: 1.8px rgba(248, 244, 236, 0.92);
+    paint-order: stroke fill;
+    text-shadow:
+      0 0 8px rgba(248, 244, 236, 0.65),
+      0 0 20px rgba(248, 244, 236, 0.32);
+  }
+  .w-main, .glyph { -webkit-text-stroke-width: 2.4px; }
+
+  /* ---------- Art lettering: span effect generated by scripts/art_title.py ----------
+     The Chinese main titles on the reference posters (intangible-heritage series) are **not set neatly in one row**, but
+     **varied sizes + vertical stretch + vertical offset + slight rotation**, with a handwritten, dynamic feel.
+     **The font stays the same** (still calligraphic); parameters are generated programmatically by art_title.py (seed reproducible).
+     ⚠ `transform-origin: 50% 82%` (**pivoting on the glyph foot**): stretching grows upward, never breaking the baseline. */
+  /* ⚠ Leave margin for the transform: a rotated / stretched glyph overflows the span's box,
+     and Chrome's scrollWidth/Height **will** count it in -> the machine check flags overflow.
+     padding expands + negative margin cancels it, so the visual position is unchanged. */
+  .art {
+    display: flex; align-items: flex-start;
+    /* The margin must be given in em and large enough: `--dy` max ±16px; on a small-size layout (axis 124px) 0.07em is only 8.7px,
+       not enough -> the glyph overflows and gets counted into scrollHeight, flagged as overflow. 0.15em stays safe down to the smallest size. */
+    padding: 0.15em 0.12em;
+    margin: -0.15em -0.12em;
+  }
+  .art > span {
+    display: inline-block;
+    font-size: calc(1em * var(--s, 1));
+    transform: translateY(var(--dy, 0)) rotate(var(--rot, 0deg)) scaleY(var(--sy, 1));
+    transform-origin: 50% 82%;
+  }
+  .art.silhouette > span { color: transparent; -webkit-text-stroke: 3px var(--ink); }
+  .w-main.art, .big.art { letter-spacing: 0; }
+
+  /* ================= axis text zone ================= */
+  .axis {
+    position: absolute;
+    left: 0; right: 0; top: var(--axis-top);
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+  }
+  .glyph {
+    font-family: var(--f-zh-brush);
+    font-size: var(--size-glyph);
+    line-height: 1.25;
+    letter-spacing: var(--track-glyph);
+    text-indent: var(--track-glyph);      /* letter spacing leaves an extra gap on the right of the last glyph; centre it with a text-indent to cancel */
+  }
+  .w-main {
+    font-size: var(--size-main);
+    line-height: var(--lh-main);
+    letter-spacing: var(--track-main);
+    text-indent: var(--track-main);
+    margin: var(--gap) 0;
+  }
+
+  /* ================= bottom info (still centred on the axis) =================
+     ⚠ The exhibition info must land on the poster **in full** (subtitle / tagline / dates / hours / venue / booking),
+     do not cut it for "minimalism" (the lead pointed this out on 2026-10-11). */
+  .foot {
+    position: absolute;
+    left: 0; right: 0; bottom: 4.6%;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px;
+    font-size: var(--size-foot);
+    letter-spacing: var(--track-foot);
+    text-indent: var(--track-foot);
+    white-space: nowrap;
+  }
+  .foot .f-sub { font-size: calc(var(--size-foot) * 1.12); color: var(--ink); }
+  .foot .f-tag { font-size: calc(var(--size-foot) * 0.90); color: var(--ink-2); }
+  .cta {
+    display: inline-block; margin-top: 6px;
+    padding: 14px 40px; border-radius: 999px;
+    background: var(--ink); color: #F2E9D8;
+    font-size: calc(var(--size-foot) * 0.92);
+    letter-spacing: 0.14em; text-indent: 0.14em;
+    text-decoration: none;
+  }
+
+  /* ================= language ================= */
+  body[data-lang="zh"] .w-main { font-family: var(--f-zh-brush); }
+  body[data-lang="zh"] .foot   { font-family: var(--f-zh-sans); font-weight: 600; }
+  /* ★ Promotional copy (subtitle .f-sub / tagline .f-tag) belongs to the **calligraphy layer**, not the info layer -
+     setting it in sans / Song looks "cheap" (the lead pointed this out on 2026-10-11).
+     Only **pure info** like dates / hours / venue / CTA may use sans. Regular script not bolded, to keep the brush tips. */
+  body[data-lang="zh"] .foot .f-sub,
+  body[data-lang="zh"] .foot .f-tag {
+    font-family: var(--f-zh-brush2);
+    font-weight: 400;
+    letter-spacing: 0.10em;
+  }
+  body[data-lang="zh"] {
+    /* The Chinese block is taller than the English block (larger size + larger line height). Sizes derived backwards from "block bottom must not press the seam":
+       Dunhuang case seam top = y539; measured at 62/90 the block height ≈428, top 4.5%(84) -> bottom edge 512, 27px margin.
+       The first version used 70/96 -> bottom edge 549, pressing the seam by 10px, and the HUANG glyph fell into a dark patch with CR down to 2.41. */
+    /* only after the title became one line could this large size fit */
+    /* ★ The lead pointed out on 2026-10-11: the title and the top/bottom single glyphs (DUN / HUANG) have **too similar sizes, no primary-secondary distinction** -
+       open up the contrast: title enlarged 124->152, single glyphs shrunk 82->70 (ratio 1.16->2.17),
+       gap 18->14 recovers the height, and the block bottom still keeps seam margin. */
+    --size-glyph: 70px;    /* 82->70 (the key-character single glyph need not compete with the main title) */
+    --size-main:  152px;   /* 124->152 (the main title must clearly dominate the single glyphs) */
+    --size-foot:  30px;    /* 25->30 */
+    --lh-main:    1.32;
+    --gap:        14px;    /* 18->14 */
+  }
+
+  body[data-lang="en"] .w-main { font-family: var(--f-en); font-weight: 900; }
+  body[data-lang="en"] .foot   { font-family: var(--f-en); font-weight: 600; }
+  body[data-lang="en"] {
+    /* ★ English enlarged and weighted per the old finalised version (2026-10-11): Inter Black 900 holds the frame.
+       ⚠ Inter Black is wider than the serif: "VISIONS ON THE WALL" ≈11.6em + letter spacing,
+       the serif-era 114px would overflow the width -> shrunk to 102px, letter spacing 0.06->0.04em.
+       Measured formula: (11.57 + 19 x 0.04)em x 102 ≈ 1258 <= live area 1340 ✓ */
+    --size-glyph: 74px;    /* 58->74 */
+    --size-main:  102px;   /* 114->102 (Inter Black is wider, one notch down to stay within width) */
+    --size-foot:  26px;    /* 28->26, following the reference's restraint */
+    --lh-main:    1.32;    /* 1.24->1.32: Inter Black's win vertical metrics are taller,
+                              1.24 measured ovY in practice (the serif era did not hit it - the font changed and the metrics changed with it) */
+    --track-main: 0.04em;
+    --track-foot: 0.10em;
+  }
+  /* promotional copy in two tiers: subtitle bold, tagline light (following the reference) */
+  body[data-lang="en"] .foot .f-sub { font-size: 30px; font-weight: 700; letter-spacing: 0.04em; }
+  body[data-lang="en"] .foot .f-tag { font-size: 22px; font-weight: 400; }
+
+  /* Machine-check instrument: under ?pf-qa=bg, hide text ink colour and stroke.
+     ⚠ `-webkit-text-stroke-color` **must be cleared together** - if only colour is cleared, the light stroke stays
+     in the "text-free background" and is read as background luminance, inflating the machine-check numbers (found in practice). */
+  html.pf-qa-bg [data-text] {
+    color: transparent !important;
+    -webkit-text-stroke-color: transparent !important;
+    text-shadow: none !important;
+  }
+</style>
+</head>
+<body data-lang="zh" data-axis>
+  <div class="stage">
+    <img class="bg" src="bg.png" alt="photo-cutout-forge 背景">
+
+    <div class="type halo">
+      <!-- ===== axis: single glyph ▸ title ▸ single glyph (top and bottom glyphs form one word) ===== -->
+      <div class="axis">
+        <div class="glyph"  data-text="g-top">敦</div>
+        <div class="w-main" data-text="t-main">壁上万象</div>
+        <div class="glyph"  data-text="g-bottom">煌</div>
+      </div>
+
+      <!-- ===== bottom info (centred on axis, extremely restrained) ===== -->
+      <div class="foot">
+        <span class="f-sub" data-text="f-1">敦煌色彩数字沉浸展</span>
+        <span class="f-tag" data-text="f-2">在流动的色彩中，走近千年的想象</span>
+        <span data-text="f-3">展期 2026.11.8 – 2027.1.18 ｜ 周二至周日 10:00–20:00</span>
+        <span data-text="f-4">城市文化中心 · 一层沉浸展厅</span>
+        <a class="cta" href="#" data-text="cta">预约观展</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var lang = q.get('lang');
+    if (lang) document.body.setAttribute('data-lang', lang);
+    if (q.get('pf-qa') === 'bg') document.documentElement.classList.add('pf-qa-bg');
+
+    function dump() {
+      var out = [];
+      document.querySelectorAll('[data-text]').forEach(function (el) {
+        var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        out.push({
+          role: el.getAttribute('data-text'),
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          color: cs.color,
+          fontSize: parseFloat(cs.fontSize),
+          writingMode: cs.writingMode || 'horizontal-tb',
+          fontFamily: cs.fontFamily,
+          text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+          overflowX: el.scrollWidth > el.clientWidth + 4,
+          overflowY: el.scrollHeight > el.clientHeight + 4
+        });
+      });
+      var s = document.createElement('script');
+      s.type = 'application/json';
+      s.id = 'pf-boxes';
+      s.textContent = JSON.stringify(out);
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') dump();
+    else window.addEventListener('load', dump);
+  })();
+  </script>
+</body>
+</html>

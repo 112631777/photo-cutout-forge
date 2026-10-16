@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<!--
+  poster-column-master.html - "vertical irregular" master template (bilingual Chinese/English, with machine-check instruments)
+
+  Added for case16 (display case + wall projection), the 5th master template. Use case: the subject source is **a vertical mass**,
+  and the background uses a "vertical irregular window" (kraft_window.py).
+
+  Layout source: the reference poster "Dunhuang Museum Exhibition" - the big title is **set vertically as a staggered glyph column**
+  (varied sizes / horizontal offset / slight rotation), with vertical small text and thin-line labels beside it, and info pinned at the bottom.
+
+  Division of labour with the other masters
+  ----------------
+  · top bar + bottom bar (sandwich): torn-paper backgrounds, three sections top/mid/bottom, most stable
+  · centred axis (axis): most restrained, mid-section all image
+  · text-left large negative space (editorial): least information, largest negative space
+  · **vertical irregular (column, this one)**: text as columns, staggered layout, paired with a vertical window
+
+  Fonts and sizes: follow the established system (Chinese title in Zhimang Xingshu + art lettering / subtitle · tagline in Mashan Zheng regular script /
+  pure info layer in sans; English all Inter, title Black 900). Details in references/calligraphy.md.
+
+  ⚠ Three hard constraints inherited from the earlier templates (pitfalls hit before, do not delete)
+    1) `-webkit-text-stroke-color` must be clearable by the machine-check instrument (see the html.pf-qa-bg rule)
+    2) `line-height` must not be smaller than the font's hhea line height (Latin ≈1.21, Chinese calligraphic ≈1.4)
+    3) `.art`'s transform overflow is counted by Chrome into scrollWidth/Height -> expand with padding
+-->
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>photo-cutout-forge · 竖排不规则母版</title>
+<style>
+  /* ---------- fonts (SIL OFL, bundled) ---------- */
+  @font-face { font-family: "ZhiMangXing";  src: url("fonts/ZhiMangXing-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "MaShanZheng";  src: url("fonts/MaShanZheng-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "LiuJianMaoCao"; src: url("fonts/LiuJianMaoCao-Regular.ttf") format("truetype"); font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Regular.ttf")   format("truetype"); font-weight: 400; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Medium.ttf")    format("truetype"); font-weight: 500; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-SemiBold.ttf")  format("truetype"); font-weight: 600; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Bold.ttf")      format("truetype"); font-weight: 700; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-ExtraBold.ttf") format("truetype"); font-weight: 800; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Black.ttf")     format("truetype"); font-weight: 900; font-display: block; }
+
+  :root {
+    --stage-w: 1500px;
+    --stage-h: 1875px;
+
+    --ink:   #17130E;
+    --ink-2: #2A231A;
+    --stage-bg: #EFE7D4;
+
+    /* English all Inter (specified by the lead on 2026-10-11: the old finalised version's Inter Black holds the frame) */
+    --f-en: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    /* fallback chain links only same-family calligraphic faces, never ending in cursive */
+    --f-zh-brush:  "ZhiMangXing", "MaShanZheng", "LiuJianMaoCao";
+    --f-zh-brush2: "MaShanZheng", "ZhiMangXing", "LiuJianMaoCao";
+    --f-zh-sans:   "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+
+    /* size tiers (follow the established system; the vertical title takes 190, between sandwich's 220 and axis's 152) */
+    --size-title: 190px;
+    --size-sub:   34px;
+    --size-tag:   30px;
+    --size-mini:  24px;
+    --size-foot:  30px;
+    --size-org:   26px;
+    --size-cta:   28px;
+    --track-sub:  0.16em;
+    --track-tag:  0.12em;
+    --track-mini: 0.34em;
+    --track-foot: 0.06em;
+    --track-org:  0.30em;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17130E; }
+
+  .stage {
+    position: relative;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    overflow: hidden;
+    background: var(--stage-bg);
+  }
+  .stage > .bg {                     /* background image (bg.png = material + vertical window) */
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .type { position: absolute; inset: 0; color: var(--ink); }
+
+  /* ---------- Legibility plating: light-colour stroke + soft glow (material ground is highly textured, strokes must be lifted out) ---------- */
+  .halo {
+    -webkit-text-stroke: 1.8px rgba(248, 244, 236, 0.92);
+    paint-order: stroke fill;
+    text-shadow: 0 0 8px rgba(248, 244, 236, 0.65), 0 0 20px rgba(248, 244, 236, 0.32);
+  }
+  .title-col { -webkit-text-stroke-width: 2.4px; }
+
+  /* ---------- Art lettering: span effect generated by scripts/art_title.py ----------
+     The reference poster's approach: **varied sizes + vertical stretch + horizontal/vertical offset + slight rotation**.
+     The font stays the same (still calligraphic); only the effect changes; parameters generated by the script (seed reproducible).
+     ⚠ `transform-origin: 50% 82%` (pivoting on the glyph foot): stretching grows upward, never breaking the baseline.
+     ⚠ padding expands + equal negative margin: the transform overflow does not enter scrollWidth/Height. */
+  .art {
+    display: flex; align-items: flex-start;
+    padding: 0.15em 0.12em;
+    margin: -0.15em -0.12em;
+  }
+  .art.v {                            /* ★ vertical: glyph column, one glyph down at a time */
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .art > span {
+    display: inline-block;
+    font-size: calc(1em * var(--s, 1));
+    transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)) scaleY(var(--sy, 1));
+    transform-origin: 50% 82%;
+  }
+  .title-col.art { letter-spacing: 0; }
+  .art.silhouette > span { color: transparent; -webkit-text-stroke: 3px var(--ink); }
+
+  /* ================= organiser (one line of small text, top-left) ================= */
+  .org {
+    position: absolute;
+    left: 96px; top: 104px;
+    font-size: var(--size-org);
+    letter-spacing: var(--track-org);
+    text-indent: var(--track-org);
+    color: var(--ink-2);
+  }
+
+  /* ================= vertical small labels (after the reference's "mural exhibition / porcelain exhibition") =================
+     a thin vertical line + vertical small text; pure info layer, sans allowed. */
+  .side { position: absolute; left: 800px; top: 300px; display: flex; gap: 56px; }
+  .mini {
+    writing-mode: vertical-rl;
+    font-size: var(--size-mini);
+    letter-spacing: var(--track-mini);
+    color: var(--ink-2);
+    padding-top: 74px;                /* make room for the thin line above */
+    position: relative;
+  }
+  .mini::before {                     /* thin vertical line: led out upward from the top of the glyph */
+    content: ""; position: absolute;
+    left: 50%; top: 0; width: 2px; height: 58px;
+    background: currentColor; opacity: 0.75;
+    transform: translateX(-50%);
+  }
+
+  /* ================= vertical subtitle / tagline (promotional copy -> regular script) ================= */
+  .col-sub, .col-tag {
+    position: absolute;
+    writing-mode: vertical-rl;
+    color: var(--ink);
+  }
+  .col-sub { left: 936px; top: 268px; font-size: var(--size-sub); letter-spacing: var(--track-sub); }
+  .col-tag { left: 1010px; top: 268px; font-size: var(--size-tag); letter-spacing: var(--track-tag); color: var(--ink-2); }
+
+  /* ================= vertical big title (glyph columns, staggered) =================
+     ★ Changed on 2026-10-11: the title went from "one column of 4 glyphs" to **two staggered glyph columns** (read right to left),
+     after the reference poster "Dunhuang Museum Exhibition"'s "Dunhuang | museum exhibition" two-column stagger - more compact,
+     and easier to fit into the paper area left by the diagonal shape extraction.
+     The container gets enough height and is **vertically centred**: Chinese two columns of 2 glyphs ≈500px, English three lines ≈550px. */
+  .title-wrap {
+    position: absolute;
+    left: 1090px; top: 15%;
+    height: 68%;
+    display: flex; align-items: center;
+    flex-direction: row-reverse;      /* vertical, right to left: the first column is at the far right */
+    gap: 30px;
+    font-size: var(--size-title);
+    line-height: 1.30;
+  }
+  .title-wrap .tcol {
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .title-wrap.art { padding: 0.15em 0.12em; margin: -0.15em -0.12em; }
+  /* English: one column, three lines (Latin vertical setting rotates and reads awkwardly) */
+  body[data-lang="en"] .title-wrap { flex-direction: column; align-items: flex-start; }
+  .title-wrap .l1, .title-wrap .l2, .title-wrap .l3 { display: block; white-space: nowrap; }
+  .title-wrap .l1 { margin-left: 26px; }
+  .title-wrap .l2 { margin-left: 108px; }
+  .title-wrap .l3 { margin-left: 0; }
+
+  /* ================= bottom info (flush to both ends, after sandwich's skeleton feature) =================
+     ⚠ The exhibition info must be **complete** (subtitle / tagline / dates / hours / venue / booking all on the page). */
+  .foot {
+    position: absolute;
+    left: 96px; right: 96px; bottom: 5.2%;
+    border-top: 2px solid rgba(23, 19, 14, 0.28);
+    padding-top: 22px;
+    display: flex; flex-direction: column; gap: 14px;
+    font-size: var(--size-foot);
+    letter-spacing: var(--track-foot);
+    white-space: nowrap;
+  }
+  .foot .row { display: flex; align-items: baseline; justify-content: space-between; gap: 40px; }
+  .cta {
+    display: inline-block;
+    padding: 13px 38px; border-radius: 999px;
+    background: var(--ink); color: #F2E9D8;
+    font-size: var(--size-cta);
+    letter-spacing: 0.14em; text-indent: 0.14em;
+    text-decoration: none;
+  }
+
+  /* ================= language ================= */
+  /* Chinese: title in running script / promotional copy in regular script / pure info in sans */
+  body[data-lang="zh"] .title-wrap { font-family: var(--f-zh-brush); }
+  body[data-lang="zh"] .title-col { -webkit-text-stroke-width: 2.4px; }
+  body[data-lang="zh"] .col-sub,
+  body[data-lang="zh"] .col-tag {
+    font-family: var(--f-zh-brush2); font-weight: 400;
+  }
+  body[data-lang="zh"] .org,
+  body[data-lang="zh"] .side,
+  body[data-lang="zh"] .foot { font-family: var(--f-zh-sans); font-weight: 600; }
+
+  /* English: all Inter (title Black 900) */
+  body[data-lang="en"] .title-wrap { font-family: var(--f-en); font-weight: 900; letter-spacing: 0.03em; }
+  body[data-lang="en"] .col-sub,
+  body[data-lang="en"] .col-tag,
+  body[data-lang="en"] .org,
+  body[data-lang="en"] .side,
+  body[data-lang="en"] .foot { font-family: var(--f-en); }
+  body[data-lang="en"] .org { font-weight: 600; letter-spacing: 0.26em; }
+  body[data-lang="en"] .foot { font-weight: 600; }
+  /* English title hierarchy: **two tiers pulled apart** (after the template: big glyph ≫ secondary glyph) - 70 / 140 */
+  body[data-lang="en"] .title-wrap { --size-title: 140px; left: 1000px; }
+  body[data-lang="en"] .title-wrap .l1,
+  body[data-lang="en"] .title-wrap .l2 { font-size: 66px; font-weight: 700; }
+  body[data-lang="en"] .title-wrap .l3,
+  body[data-lang="en"] .title-wrap .l4 { font-size: 132px; }
+
+  /* ================= diagonal shape-extraction layout (body[data-diag], added 2026-10-11) =================
+     Paired with band_mask `--shape diag-pinch --rotate 38`: opens a diagonal block "top-right -> bottom-left, wide at both ends, pinched in the middle".
+     Measured 6x6 coverage grid: **top-left 0% / bottom-right 0% / top-right and bottom-left 100%** -
+     the top-right and bottom-left corners are taken by the image, **leaving a paper area in each of the top-left and bottom-right corners**.
+     -> Text is placed "promotional copy and small labels top-left / title and exhibition info bottom-right", the whole block avoiding the diagonal block.
+     ⚠ Coordinates are not guessed: `run_*.py` all run the "text presses window" check (>2% counts as pressing) + the machine check's
+     **background P5 (WCAG relative luminance)** - this case measured **a dark patch in the material at bottom-right y>=1700 (P5≈1)**,
+     black text there would certainly fail, so the bottom bar is shifted up and narrowed to x 760..1260. */
+  body[data-diag] .org        { top: 150px; }
+  body[data-diag] .side       { left: 96px;  top: 220px; }
+  /* ★ Hierarchy pulled apart (the lead pointed out on 2026-10-11 "make the title a bit bigger, the rest unlike the template") -
+     after reference 115's tiers: **big title ≫ promotional copy > subtitle > small label ≈ info**, with a clear jump between tiers. */
+  body[data-diag] .col-sub    { left: 560px; top: 220px; font-size: 30px; }   /* subtitle: 33.6->30 */
+  /* Chinese tagline changed to **two horizontal lines**, enlarged to 46px (the template's "take you through the millennia / beauty of intangible heritage" is this tier) */
+  body[data-diag] .col-tag    { left: 96px; top: 442px; width: 470px;
+                                writing-mode: horizontal-tb; line-height: 1.38; font-size: 46px; }
+  body[data-diag] .mini       { font-size: 26px; }
+  body[data-diag] .title-wrap { left: 1030px; top: 53.8%; height: 36%; }
+  /* the two glyph columns are **different sizes** (after the template "Dunhuang" > "museum exhibition"): right column (title-a) larger, left column next */
+  body[data-diag] .title-wrap .tcol:nth-child(1) { font-size: 185px; }
+  body[data-diag] .title-wrap .tcol:nth-child(2) { font-size: 167px; }
+  /* leave enough for the transform's overflow (--dx ±40, scaleY 1.32), or the machine check flags overflow */
+  body[data-diag] .tcol.art   { padding: 0.34em 0.24em; margin: -0.34em -0.24em; }
+  /* ★ Bottom bar changed to **one column**: the bottom-right paper area is only ~680px wide, two segments side by side would overflow off-canvas
+     (measured: f-2 overflowed to x1618, landing in the body background outside the canvas -> machine check P5=0, CR 1.14).
+     And give the info rows a hierarchy too: **dates heaviest (36) -> hours/venue (28) -> button (30)**. */
+  body[data-diag] .foot       { left: 760px; right: 240px; bottom: 2.6%; }
+  body[data-diag] .foot .row  { justify-content: flex-start; }
+  body[data-diag] .foot .row:nth-child(1) span { font-size: 36px; }
+  body[data-diag] .foot .row:nth-child(2) span,
+  body[data-diag] .foot .row:nth-child(3) span { font-size: 28px; color: var(--ink-2); }
+  body[data-diag] .cta        { font-size: 30px; }
+  /* English: narrow block top-left (will wrap) + four staggered lines bottom-right */
+  body[data-lang="en"][data-diag] .org     { left: 96px; right: auto; text-align: left;
+                                             width: 520px; white-space: normal; line-height: 1.35; }
+  body[data-lang="en"][data-diag] .col-sub { left: 96px; top: 250px; width: 520px;
+                                             line-height: 1.35; font-size: 30px; }
+  body[data-lang="en"][data-diag] .col-tag { left: 96px; top: 356px; width: 520px;
+                                             line-height: 1.35; font-size: 40px; }
+  body[data-lang="en"][data-diag] .side    { left: 96px; top: 566px; }
+  /* The English title block must **land at y>=1005**: the diagonal block edge still presses x 930..1086 at y 937..994 (measured 2.1%).
+     ⚠ EN's .title-wrap is in **column direction** -> `align-items` controls the horizontal,
+     there is no vertical centring (`justify-content` defaults to flex-start) -> the content **sticks to the container top**,
+     so the position is decided directly by `top`; do not compute it as "centred". */
+  body[data-lang="en"][data-diag] .title-wrap { left: 1000px; top: 56%; height: 40%; }
+  /* ⚠ Sizes are given uniformly by the "language" block (70/70/140/140, two tiers); here we **only give the offset** -
+     writing the size in two places would overwrite each other (hit this pitfall once today). */
+  body[data-lang="en"][data-diag] .title-wrap .l1 { margin-left: 0; }
+  body[data-lang="en"][data-diag] .title-wrap .l2 { margin-left: 62px; }
+  body[data-lang="en"][data-diag] .title-wrap .l3 { margin-left: 0; }
+  body[data-lang="en"][data-diag] .title-wrap .l4 { margin-left: 24px; }
+  /* English promotional copy switched to a horizontal narrow block (Latin vertical setting rotates and reads awkwardly) -
+     placed in the material zone above the window, two tiers: subtitle 600 / tagline 400 */
+  body[data-lang="en"] .col-sub,
+  body[data-lang="en"] .col-tag {
+    writing-mode: horizontal-tb;
+    left: 96px; width: 900px; text-align: left;
+  }
+  body[data-lang="en"] .col-sub { top: 176px; font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  body[data-lang="en"] .col-tag { top: 232px; font-size: 24px; font-weight: 400; }
+  body[data-lang="en"] .side { left: 96px; top: 306px; gap: 40px; }
+  body[data-lang="en"] .mini {
+    writing-mode: horizontal-tb; padding-top: 0; padding-left: 0;
+    font-size: 24px; font-weight: 600; letter-spacing: 0.20em;
+  }
+  body[data-lang="en"] .mini::before { display: none; }
+  body[data-lang="en"] .org { left: auto; right: 96px; text-align: right; }
+
+  /* ================= Move E: oversized English cropped at the bottom (after reference 06 bamboo weaving / 07 Huizhou lanterns) =================
+     Inter Black huge, flush left and right, **lower half cropped by the bottom edge** - a text band that "weighs down the frame".
+     **Off by default**; inserted by the run script when needed:
+       `<div class="giant" data-text="giant"><span>LANTERN ART</span></div>`
+
+     ★ Correct approach (settled after three versions on 2026-10-11): **the outer container handles cropping, the inner span handles the text**.
+       The outer `overflow:hidden` + height slightly less than the glyph height, its box **still inside the canvas**;
+       the inner uses `translateY` to shift down, so the lower half is cropped by the outer layer.
+       ⚠ If the text is placed directly in the outer layer and the outer `bottom` goes negative, the element box crosses the canvas bottom edge ->
+       the machine check samples outside the canvas -> **P5=0, CR≈1.14** (looks like "background too dark", but it is actually out of bounds).
+     ⚠ Three measured rules:
+       ① **size by copy length**: `size = live area (1500 - 2x56 = 1388) / (getlength(copy)/1000)`.
+          Measured BAMBOO WEAVING 9.934em->139px, LANTERN ART 7.213em->192px, HORSE & RIDER 7.527em->184px.
+          Hard-coding 208px made the copy 1810px wide -> `overflowX`.
+       ② **line-height >= Inter's win metric**: 1.21 still flags `overflowY`; Inter Black needs **1.32**
+          (same pitfall as the axis title).
+       ③ **must not straddle onto the image**: when the band presses a dark ground / the image, P5 drops to 0 (measured CR 1.14 fail) ->
+          constrain it to the **paper zone** (change left/right), or when on a dark ground switch to light text and re-check contrast.
+       ④ **⚠ it is the only move that "allows ovY"**: cropping relies on the container's overflow:hidden,
+          the cropped glyph inevitably makes `scrollHeight > clientHeight` -> **the machine check will report giant(overflow), which is expected**.
+          The criterion switches to **human-eye inspection**: the lower half is cleanly cut by the bottom edge and the band is flush left and right. After sizing by copy length,
+          `overflowX` should not appear (if it does, the size is too large). */
+  .giant {
+    position: absolute; left: 56px; right: 56px; bottom: 0;
+    overflow: hidden;
+    height: calc(var(--size-giant, 139px) * 0.74);
+    font-size: var(--size-giant, 139px);   /* the container must also get a font size: the machine check judges the 3.0/4.5 threshold by the element's computed font size */
+  }
+  .giant > span {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    font-size: var(--size-giant, 139px);
+    line-height: 1.32;
+    letter-spacing: 0.005em;
+    text-align: center; white-space: nowrap;
+    transform: translateY(28%);        /* shift down -> lower half cropped by the outer layer */
+  }
+
+  /* ================= full-bleed ground layout (body[data-full], added 2026-10-12) =================
+     After references 06/07/13 (bamboo weaving / Huizhou lanterns / intangible-heritage paper edition): **photo fills the whole canvas**, text pressed directly onto the photo,
+     no more window. The lead's words: "make the poster fill as much as possible, like these ones".
+
+     ⚠⚠ With full bleed the photo's light/dark is **uncontrollable** -> light text must rely on `kraft_full.py --scrim` to press out a dark base.
+     Measured in this case: top-left curtain wall P95=158 (WCAG line luminance), light text CR only 1.31, dark text 3.03 - **neither meets the bar**;
+     after using scrim to press the brightest spot to <=37 (≈sRGB 105), light text finally reaches 4.5:1.
+     ⚠ Light-text mode: text takes a light colour, and the legibility stroke **reverses to dark** (do not reuse the dark-text light stroke). */
+  body[data-full] .org { left: auto; right: 100px; top: 104px; }
+
+  /* ★ Light-text mode (`data-dark`, split out on 2026-10-12):
+     use light text when pressed on a **dark-ground photo** (after references 06/07 - they can hold light text because the ground is dark to begin with).
+     Do not add this marker when pressed on **light material**; use the default dark ink.
+     ⚠ Light-text mode must change colour **element by element**: in the base classes .col-sub / .col-tag / .mini / .org all hard-code --ink/--ink-2,
+       changing only .type's colour gets overridden by them (measured CR down to 1.03, equivalent to dark text on a dark ground). */
+  body[data-dark] .type { color: #F2E9D8; }
+  body[data-dark] .col-sub,
+  body[data-dark] .col-tag,
+  body[data-dark] .mini,
+  body[data-dark] .org { color: #F2E9D8; }
+  body[data-dark] .col-tag { color: rgba(242, 233, 216, 0.88); }
+  body[data-dark] .halo {
+    -webkit-text-stroke-color: rgba(18, 14, 10, 0.62);
+    text-shadow: 0 2px 10px rgba(10, 8, 6, 0.55), 0 0 26px rgba(10, 8, 6, 0.35);
+  }
+  /* top-left: vertical title (single-column glyph column, after 06/07) */
+  /* ★ Horizontal staggered title, placed in the **lower material blank zone** (set by the lead on 2026-10-12):
+     ① the title changed from vertical to **horizontal** (after references 13/12's "beauty of intangible heritage" size variation);
+     ② the position is in the material blank - **large text must not press on the cutout motif** (new rule).
+     Measured blank grid in this case: the window band runs across y≈700-940, **from y>=1187 the whole strip is 100% material**,
+     a small block top-right (x400-1000, y0-250); the title takes the whole lower strip (2026-10-12 second round: moved further **up-right**, starting x520, y63.2% - leaving 60px margin above from the tear-opening lower edge (~1122 mid), and not touching the info rows on the right). */
+  body[data-full] .title-wrap { left: 520px; top: 63.2%; height: auto;
+                                flex-direction: column; align-items: flex-start; }
+  body[data-full] .title-wrap .tcol:nth-child(1) { font-size: 196px; }
+  /* Chinese = horizontal (spans side by side); English still two lines, kept vertical */
+  body[data-lang="zh"][data-full] .title-wrap .tcol { flex-direction: row; align-items: flex-start; }
+  /* Letter spacing **slightly enlarged** (the lead on 2026-10-12: "spacing can be slightly enlarged") - use the container's letter-spacing,
+     which is steadier than giving margin on the spans (it does not count the transform's overflow in). */
+  body[data-lang="zh"][data-full] .title-wrap .tcol.art { letter-spacing: 0.08em; }
+  body[data-full] .tcol.art { padding: 0.30em 0.22em; margin: -0.30em -0.22em; }
+  /* right side: vertical subtitle + tagline (after the two small lines on the right edge of 06/07) */
+  body[data-full] .col-sub { left: 1272px; top: 150px; font-size: 34px; writing-mode: vertical-rl; }
+  body[data-full] .col-tag { left: 1350px; top: 150px; font-size: 30px; writing-mode: vertical-rl; }
+  /* left edge: two vertical small labels + thin line (after 06/07's "national intangible cultural heritage / warp-and-weft into art") */
+  body[data-full] .side { left: 96px; top: 1160px; }
+  /* bottom bar: info pressed on the dark ground; giant at the very bottom, cropped by the lower edge (after 06/07's BAMBOO WEAVING) */
+  body[data-full] .foot { left: 96px; right: 96px; bottom: 13.0%; }
+  body[data-full] .foot .row { justify-content: space-between; }
+  body[data-full] .giant { left: 96px; right: 96px; --size-giant: 132px; }
+  /* English: title changed to **two horizontal staggered lines** (Latin vertical setting rotates), rest in the same position */
+  body[data-lang="en"][data-full] .title-wrap { left: 520px; top: 63.2%; height: auto; }
+  /* ⚠ The English title must also land in the **lower material blank zone** (large text must not press the cutout motif) - earlier it stayed top-left pressing the mural. */
+  body[data-lang="en"][data-full] .title-wrap .l1,
+  body[data-lang="en"][data-full] .title-wrap .l2 { font-size: 112px; }
+  body[data-lang="en"][data-full] .title-wrap .l1 { margin-left: 0; }
+  body[data-lang="en"][data-full] .title-wrap .l2 { margin-left: 52px; }
+  body[data-lang="en"][data-full] .col-sub,
+  body[data-lang="en"][data-full] .col-tag {
+    /* ⚠ The box must be **pulled inside the backing narrow band on the right edge** (veil x1150-1500) - the earlier x1096 left edge stuck out of the band,
+       and the machine check caught that bright patch (EN tagline CR 3.85 fail). */
+    writing-mode: horizontal-tb; left: 1160px; width: 330px; text-align: right;
+  }
+  body[data-lang="en"][data-full] .col-sub { top: 300px; font-size: 30px; writing-mode: horizontal-tb; }
+  body[data-lang="en"][data-full] .col-tag { top: 404px; font-size: 24px; writing-mode: horizontal-tb; }
+    body[data-lang="en"][data-full] .mini { writing-mode: horizontal-tb; padding-top: 0; }
+  body[data-lang="en"][data-full] .mini::before { display: none; }
+  body[data-lang="en"][data-full] .org { left: auto; right: 100px; text-align: right; }
+
+  /* Machine-check instrument: under ?pf-qa=bg, hide text ink colour and stroke.
+     ⚠ `-webkit-text-stroke-color` **must be cleared together** - if only colour is cleared, the light stroke stays
+     in the "text-free background" and is read by check_contrast as background luminance, inflating all numbers (found in practice). */
+  html.pf-qa-bg [data-text] {
+    color: transparent !important;
+    -webkit-text-stroke-color: transparent !important;
+    text-shadow: none !important;
+  }
+</style>
+</head>
+<body data-lang="zh" data-column>
+  <div class="stage">
+    <img class="bg" src="bg.png" alt="photo-cutout-forge 背景">
+
+    <div class="type halo">
+      <div class="org" data-text="org">长沙博物馆 × 城市文化中心</div>
+
+      <!-- vertical small labels (after the reference's "mural exhibition / porcelain exhibition") -->
+      <div class="side">
+        <span class="mini" data-text="m-1">唐三彩</span>
+        <span class="mini" data-text="m-2">胡人俑</span>
+      </div>
+
+      <!-- promotional copy: vertical (Chinese) / horizontal narrow block (English, see the language block) -->
+      <div class="col-sub" data-text="sub">唐三彩马与胡人俑特展</div>
+      <div class="col-tag" data-text="tag">在灯影与彩釉之间，看见盛唐的一骑</div>
+
+      <!-- vertical big title: two staggered glyph columns (read right to left). Chinese = art-lettering spans (generated by the run script);
+           English = three staggered lines within one column. -->
+      <div class="title-wrap">
+        <div class="tcol art v" data-text="title-a">千年</div>
+        <div class="tcol art v" data-text="title-b">一骑</div>
+      </div>
+
+      <!-- bottom info: two rows, each flush to both ends -->
+      <div class="foot">
+        <div class="row">
+          <span data-text="f-1">展期 2027.3.18 – 2027.6.20</span>
+          <span data-text="f-2">周二至周日 10:00–20:00</span>
+        </div>
+        <div class="row">
+          <span data-text="f-3">城市文化中心 · 一层沉浸展厅</span>
+          <a class="cta" href="#" data-text="cta">预约观展</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var lang = q.get('lang');
+    if (lang) document.body.setAttribute('data-lang', lang);
+    if (q.get('pf-qa') === 'bg') document.documentElement.classList.add('pf-qa-bg');
+
+    function dump() {
+      var out = [];
+      document.querySelectorAll('[data-text]').forEach(function (el) {
+        var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        out.push({
+          role: el.getAttribute('data-text'),
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          color: cs.color,
+          fontSize: parseFloat(cs.fontSize),
+          writingMode: cs.writingMode || 'horizontal-tb',
+          fontFamily: cs.fontFamily,
+          text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+          overflowX: el.scrollWidth > el.clientWidth + 4,
+          overflowY: el.scrollHeight > el.clientHeight + 4
+        });
+      });
+      var s = document.createElement('script');
+      s.type = 'application/json';
+      s.id = 'pf-boxes';
+      s.textContent = JSON.stringify(out);
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') dump();
+    else window.addEventListener('load', dump);
+  })();
+  </script>
+</body>
+</html>

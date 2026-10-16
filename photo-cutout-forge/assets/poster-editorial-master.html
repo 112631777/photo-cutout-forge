@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>photo-cutout-forge · 左文母版（左文＋大留白）</title>
+<!--
+  poster-editorial-master.html —— 「左文＋大留白」骨架专用母版
+  来源：CHINA 2025 / @DNA2725 参考（2026-10-10 老大提供，10-09 已从同批参考抽象进
+        cultural-event-key-visual/references/composition-library.md 附录「骨架三」）。
+
+  结构：文字全部集中在**左下角一个窄列**，其余整片留白。
+        极小三行（版权式）        ← 先给"出处感"
+        CHINA / 壁上万象           ← 大字标题
+        2 0 2 5 / 2 0 2 6         ← **字距拉开**的小字（不靠放大获得存在感）
+        ©DNA2725 / 预约观展        ← 署名
+        ……其余全留白……
+
+  三条要点（参考海报的做法，别丢）：
+    1. **信息极克制** —— 不给信息条、不给按钮块，只留最少几行。
+    2. **小字靠"字距拉开"获得存在感**，不是靠放大（`2 0 2 5` 就是这个手法）。
+    3. 文字块左对齐成一柱，**右侧／其余整片留白**是主角，不要往里塞东西。
+
+  与另三套母版的分工：
+    poster-cutout-master.html    四版式，文字压画面某个角
+    poster-sandwich-master.html  顶栏＋底栏，文字占上下两条带
+    poster-axis-master.html      中轴居中，文字占一条中轴
+    poster-editorial-master.html 本母版，文字占**一列**，信息量最小
+
+  字体（assets/fonts/，随包）：
+    中文  ⚠ 硬要求②「书法艺术字体，不用常规字体」：
+          标题 ZhiMangXing 志莽行书；信息层 sans。**不要用中宋/宋体排中文标题**。
+    英文  Inter（SIL OFL）—— 2026-10-11 起英文层全部改 Inter（旧版定稿同款），
+          EB Garamond 衬线实测「太纤细、撑不起画面」已弃用（@font-face 暂留）。
+
+  ⚠ 护读：撕纸/岩壁类背景 P5 很低，**必须加浅色描边**（.halo）。
+    描边只改善肉眼可读性、不改善机检数值 —— 字色本身仍用纯黑。
+
+  用法：<body data-lang="zh|en" data-editorial>   机检 ?pf-qa=bg ／ #pf-boxes
+-->
+<style>
+  /* ---------- 中文书法体（本地，随包） ---------- */
+  @font-face { font-family: "ZhiMangXing";  src: url("fonts/ZhiMangXing-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "MaShanZheng";  src: url("fonts/MaShanZheng-Regular.ttf")  format("truetype"); font-display: block; }
+  @font-face { font-family: "LiuJianMaoCao"; src: url("fonts/LiuJianMaoCao-Regular.ttf") format("truetype"); font-display: block; }
+
+  /* ---------- 英文（EB Garamond，SIL OFL，随包） ---------- */
+  @font-face {
+    font-family: "EB Garamond";
+    src: url("fonts/EBGaramond-Variable.ttf") format("truetype");
+    font-weight: 400 900;
+    font-display: block;
+  }
+
+  :root {
+    --stage-w: 1500px;
+    --stage-h: 1875px;
+
+    --ink:      #000000;
+    --ink-2:    #14100B;
+    --ink-3:    #241B11;
+    --halo:     rgba(246, 242, 232, 0.88);
+    --halo-soft:rgba(246, 242, 232, 0.50);
+    --stage-bg: #EFE7D4;
+
+    /* ★ 英文字体切换（2026-10-11 老大指定）：英文参考旧版定稿（Inter Black 大标题），
+       EB Garamond 衬线「太纤细、撑不起画面」—— 英文层全部改 Inter。 */
+    --f-en: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    /* 回退链只接同类书法体，末端不写 cursive */
+    --f-zh-brush:  "ZhiMangXing", "MaShanZheng", "LiuJianMaoCao";
+    --f-zh-sans:   "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+
+    --margin: 84px;                /* 左文列距左边缘 */
+    --bottom: 3.6%;                /* 文字块距底：自然撕口的下缘左端更低，需留出余量 */
+
+    /* 字号原则（组员评审后修订）：**不照抄参考海报的字号**（参考最小档≈15px@1500，太小），
+       按「落字区能放多大」定。本版相对首版整体放大一档。 */
+    --size-tiny: 24px;             /* 20→24 */
+    --size-big:  128px;            /* 110→128 */
+    --size-year: 34px;             /* 28→34 */
+    --size-sign: 40px;             /* 34→40 */
+    --track-year: 0.62em;          /* 年份靠字距拉开，不靠放大 */
+    --lh-big: 1.30;                /* ≥ 字体 hhea 行高（拉丁≈1.21、中文书法体≈1.4） */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17130E; }
+
+  .stage {
+    position: relative;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    overflow: hidden;
+    background: var(--stage-bg);
+  }
+  .stage > .bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .type { position: absolute; inset: 0; color: var(--ink); }
+
+  /* ---------- 护读：浅色描边 + 柔光 ----------
+     ⚠ 撕纸/岩壁类底材质**杂度高**（敦煌实测字框内 std 19–29），
+     笔画细的黑字会「糊」进纹理里 —— 这个缺陷**对比度数值看不出来**，
+     必须给笔画加一圈浅色轮廓，把它从花底里「托」出来。
+     `paint-order: stroke fill` 是关键：描边画在字身**下面**，
+     否则会侵蚀笔画内部、字反而变细。 */
+  .halo {
+    -webkit-text-stroke: 1.8px rgba(248, 244, 236, 0.92);
+    paint-order: stroke fill;
+    text-shadow:
+      0 0 8px rgba(248, 244, 236, 0.65),
+      0 0 20px rgba(248, 244, 236, 0.32);
+  }
+  .big { -webkit-text-stroke-width: 2.4px; }
+
+  /* ---------- 艺术字：scripts/art_title.py 生成的 span 效果 ----------
+     参考海报（非遗系列）的中文大标题**不是端正排一行**，而是
+     **大小错落 ＋ 纵向拉长 ＋ 高低错位 ＋ 轻微旋转**，有手写、动态的味道。
+     **字体不变**（仍是书法体）；参数由 art_title.py 程序化生成（seed 可复现）。
+     ⚠ `transform-origin: 50% 82%`（**以字脚为支点**）：拉长时向上长，不顶破基线。 */
+  /* ⚠ 给 transform 留余量：旋转／拉长后的字形会超出 span 的框，
+     Chrome 的 scrollWidth/Height **会**把它算进来 → 机检判 overflow。
+     padding 撑开 + 负 margin 抵消，视觉位置不变。 */
+  .art {
+    display: flex; align-items: flex-start;
+    /* 余量要按 em 给足：`--dy` 最大 ±16px，字号小的版式按 0.07em 不够 →
+       字形超出被算进 scrollHeight 判 overflow。0.15em 到最小字号也安全。 */
+    padding: 0.15em 0.12em;
+    margin: -0.15em -0.12em;
+  }
+  .art > span {
+    display: inline-block;
+    font-size: calc(1em * var(--s, 1));
+    transform: translateY(var(--dy, 0)) rotate(var(--rot, 0deg)) scaleY(var(--sy, 1));
+    transform-origin: 50% 82%;
+  }
+  .art.silhouette > span { color: transparent; -webkit-text-stroke: 3px var(--ink); }
+  .w-main.art, .big.art { letter-spacing: 0; }
+
+  /* ================= 左文列 ================= */
+  .col {
+    position: absolute;
+    left: var(--margin); bottom: var(--bottom);
+    display: flex; flex-direction: column; align-items: flex-start;
+    max-width: 60%;
+  }
+  .tiny {
+    display: flex; flex-direction: column; gap: 7px;
+    font-size: var(--size-tiny);
+    letter-spacing: 0.03em;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .big {
+    font-size: var(--size-big);
+    font-weight: 400;
+    line-height: var(--lh-big);
+    letter-spacing: 0.02em;
+    margin-top: 36px;
+  }
+  /* 展讯三行（完整信息）
+     ⚠ 不能为了"极简"把展讯／tagline／预约砍掉 —— 这些是海报的实用信息
+     （2026-10-11 老大指出）。 */
+  .meta {
+    display: flex; flex-direction: column; gap: 7px;
+    font-size: var(--size-year);
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    margin-top: 24px;
+    line-height: 1.45;
+  }
+  .cta {
+    display: inline-block; align-self: flex-start; margin-top: 24px;
+    padding: 14px 40px; border-radius: 999px;
+    background: var(--ink); color: #F2E9D8;
+    font-size: var(--size-sign);
+    letter-spacing: 0.14em; text-indent: 0.14em;
+    text-decoration: none;
+  }
+
+  /* ================= 语言 ================= */
+  /* ★ 传播语（.tiny：副题＋tagline）属**书法层**，不是信息层 ——
+     落 sans／宋体都「不高级」（2026-10-11 老大指出）。
+     只有 .meta（展期/时间/地点）和 .cta 这些**纯信息**才允许 sans。楷书不加粗，保笔锋。 */
+  body[data-lang="zh"] .tiny { font-family: var(--f-zh-brush2); font-weight: 400; letter-spacing: 0.10em; }
+  body[data-lang="zh"] .year,
+  body[data-lang="zh"] .sign { font-family: var(--f-zh-sans); font-weight: 600; }
+  body[data-lang="zh"] .big  { font-family: var(--f-zh-brush); }
+
+  body[data-lang="en"] .tiny,
+  body[data-lang="en"] .year,
+  body[data-lang="en"] .sign,
+  body[data-lang="en"] .big  { font-family: var(--f-en); }
+
+  body[data-lang="en"] {
+    /* ★ 英文按旧版定稿实测放大（2026-10-11）：对参考图量墨迹 ——
+       l1 VISIONS ≈162px／l2 ON THE WALL ≈98px（两行同宽 ≈692px）、
+       副题 ≈32px/700、tagline ≈24px、meta ≈20px、CTA 字 ≈24px。
+       本版信息行比参考多，且块顶受中缝硬约束（SEAM 底左端 1191）——
+       首跑 156/96 时块顶 1137.9，压中缝 53px → 标题收到 146/88（参考的 90%），
+       其余档位同步收紧。**再想放大：先减行或并行，不是删信息。** */
+    --size-big:  146px;            /* l1（92→146） */
+    --size-big2: 88px;             /* l2（新变量） */
+    --size-year: 19px;             /* meta 信息行（26→19，学参考的克制） */
+    --size-sign: 24px;             /* CTA 字（34→24，学参考的胶囊比例） */
+    --size-tiny: 22px;             /* tagline；副题单独 30px（见下） */
+    --lh-big:    1.21;             /* ≥ Inter hhea 行高，不能再小（overflowY 坑） */
+    --track-year: 0.02em;
+    --bottom: 2.4%;                /* 块变高，底距再让一点 */
+  }
+  body[data-lang="en"] .big {
+    font-weight: 900;              /* Inter Black：撑画面的关键 */
+    letter-spacing: 0.04em;
+    margin-top: 14px;              /* 36→14 */
+  }
+  body[data-lang="en"] .big .l1 { display: block; font-size: var(--size-big); }
+  body[data-lang="en"] .big .l2 { display: block; font-size: var(--size-big2); margin-top: 2px; }
+  /* ⚠ .big 同时挂着 .art（中文艺术字用 flex 横排 span）——英文的 l1/l2 是**两行块**，
+     必须关掉 flex，否则两个 span 被塞进同一行、收缩换行（实测盒子被压到 954px 宽）。 */
+  body[data-lang="en"] .big.art { display: block; }
+  /* 副题／tagline 分档（参考：副题粗、tagline 细） */
+  body[data-lang="en"] .tiny { margin-top: 0; gap: 5px; }
+  body[data-lang="en"] .tiny span:nth-child(1) { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  body[data-lang="en"] .tiny span:nth-child(2) { font-size: 22px; font-weight: 400; }
+  /* meta：label 小半档 ＋ 稍浅（仍够 4.5:1），value 600 */
+  body[data-lang="en"] .meta { font-weight: 600; margin-top: 14px; gap: 5px; }
+  body[data-lang="en"] .meta i {
+    font-style: normal; font-weight: 500; font-size: 0.85em;
+    letter-spacing: 0.10em; color: var(--ink-2); margin-right: 12px;
+  }
+  body[data-lang="en"] .cta { padding: 12px 34px; letter-spacing: 0.12em; margin-top: 12px; }
+
+  /* 机检仪器：?pf-qa=bg 时隐去文字墨色与描边。
+     ⚠ `-webkit-text-stroke-color` **必须一起清** —— 只清 color 的话，浅色描边会留在
+     「无字背景」里被当成背景亮度，机检数值虚高（实测踩过）。 */
+  html.pf-qa-bg [data-text] {
+    color: transparent !important;
+    -webkit-text-stroke-color: transparent !important;
+    text-shadow: none !important;
+  }
+</style>
+</head>
+<body data-lang="zh" data-editorial>
+  <div class="stage">
+    <img class="bg" src="bg.png" alt="photo-cutout-forge 背景">
+
+    <div class="type halo">
+      <!-- ===== 左文列：版权式小字 → 大标题 → 字距拉开的年份 → 署名 ===== -->
+      <div class="col">
+        <div class="tiny">
+          <span data-text="t-1">敦煌色彩数字沉浸展</span>
+          <span data-text="t-2">在流动的色彩中，走近千年的想象</span>
+        </div>
+        <div class="big art" data-text="title">壁上万象</div>
+        <div class="meta">
+          <span data-text="m-1">展期 2026.11.8 – 2027.1.18</span>
+          <span data-text="m-2">周二至周日 10:00–20:00</span>
+          <span data-text="m-3">城市文化中心 · 一层沉浸展厅</span>
+        </div>
+        <a class="cta" href="#" data-text="cta">预约观展</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var lang = q.get('lang');
+    if (lang) document.body.setAttribute('data-lang', lang);
+    if (q.get('pf-qa') === 'bg') document.documentElement.classList.add('pf-qa-bg');
+
+    function dump() {
+      var out = [];
+      document.querySelectorAll('[data-text]').forEach(function (el) {
+        var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        out.push({
+          role: el.getAttribute('data-text'),
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          color: cs.color,
+          fontSize: parseFloat(cs.fontSize),
+          writingMode: cs.writingMode || 'horizontal-tb',
+          fontFamily: cs.fontFamily,
+          text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+          overflowX: el.scrollWidth > el.clientWidth + 4,
+          overflowY: el.scrollHeight > el.clientHeight + 4
+        });
+      });
+      var s = document.createElement('script');
+      s.type = 'application/json';
+      s.id = 'pf-boxes';
+      s.textContent = JSON.stringify(out);
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') dump();
+    else window.addEventListener('load', dump);
+  })();
+  </script>
+</body>
+</html>

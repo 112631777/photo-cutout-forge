@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>photo-cutout-forge · 书法排版母版（四版式 · 中英双语）</title>
+<!--
+  photo-cutout-forge master template - calligraphy edition / English edition
+  Pipeline position: this layer sits after auto_compose.py emits bg.png (background processing + subject laid on paper) -> this layer only does "typography".
+  Hard rule: process the background first, then set the type - this master template does not touch the background.
+
+  Fonts (assets/fonts/, SIL OFL, bundled):
+    Chinese  ZhiMangXing  Zhimang Xingshu - main title (default)
+            MaShanZheng  Mashan Zheng regular-script brush - subtitle / short phrase / seal
+            LiuJianMaoCao Liujian Maocao - optional, emphasis glyphs
+    English  Inter 400/500/600/700/800/900 - English title and info layer
+            (basis: glyph-by-glyph comparison against the reference poster "start business" - square i dot, double-storey a,
+             slanted top cut on t, Black weight -> Inter. Geometric faces Futura/Poppins have round i dots and single-storey a, so ruled out.)
+
+  Four layouts: body[data-comp] takes hero-top / hero-right / hero-left / hero-centre
+    (must match the layout in auto_compose.py's plan.json)
+
+  Language: body[data-lang="en"] switches to English typography (whole site switches to Inter; title Black; the two lines each fill the column width).
+
+  Machine-check instruments (do not delete):
+    ?pf-qa=bg   hides all text ink colour, so check_contrast can capture the "text-free background"
+    #pf-boxes   exports the text elements' rectangles and computed styles for check_contrast to read
+    ?comp=xxx   switches layout (used in headless rendering)
+    ?theme=deep dark-ground light-type theme (pairs with --bg-mode color dark ground field; or write body[data-theme="deep"] directly)
+    ?lang=en    English typography theme (or write body[data-lang="en"] directly; the copy must still be edited in the HTML)
+-->
+<style>
+  /* ---------- Chinese calligraphic fonts (local, bundled) ---------- */
+  @font-face { font-family: "ZhiMangXing"; src: url("fonts/ZhiMangXing-Regular.ttf") format("truetype"); font-display: block; }
+  @font-face { font-family: "MaShanZheng"; src: url("fonts/MaShanZheng-Regular.ttf") format("truetype"); font-display: block; }
+  @font-face { font-family: "LiuJianMaoCao"; src: url("fonts/LiuJianMaoCao-Regular.ttf") format("truetype"); font-display: block; }
+
+  /* ---------- English (Inter, SIL OFL, bundled) ---------- */
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Regular.ttf") format("truetype"); font-weight: 400; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Medium.ttf") format("truetype"); font-weight: 500; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Bold.ttf") format("truetype"); font-weight: 700; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-ExtraBold.ttf") format("truetype"); font-weight: 800; font-display: block; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter-Black.ttf") format("truetype"); font-weight: 900; font-display: block; }
+
+  :root {
+    --stage-w: 1500px;
+    --stage-h: 1875px;
+
+    --ink:     #2A231A;              /* ink (warm black) */
+    --ink-2:   #4A4034;
+    --ink-3:   #56503F;
+    --gold:    #6B4E1E;              /* legible gold-brown (for text) */
+    --gold-lt: #C9A96A;              /* decorative hairline (not text) */
+    --seal:    #8A3220;              /* vermilion seal face */
+    --paper:   #F2E9D8;
+    --stage-bg:#EFE7D4;              /* stage base colour (= background paper nominal value; deep theme overrides it) */
+    --rule:    rgba(122, 92, 34, 0.35);   /* divider above meta */
+    --cta-bg:  var(--ink);           /* CTA base colour (deep theme swaps to gold base) */
+    --cta-ink: var(--paper);         /* CTA text colour */
+
+    --f-brush:   "ZhiMangXing", "MaShanZheng", cursive;
+    --f-brush-2: "MaShanZheng", "ZhiMangXing", cursive;
+    --f-cjk-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+    --f-en:      "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17130E; }
+
+  .stage {
+    position: relative;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    overflow: hidden;
+    background: var(--stage-bg);     /* default = preset paper colour; deep theme (data-theme=deep) changes it to the ground-field base colour */
+  }
+  .stage > .bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+
+  .type { position: absolute; inset: 0; color: var(--ink); }
+
+  /* ---------- type-layer components ---------- */
+  .presenter {
+    position: absolute;
+    font-family: var(--f-cjk-sans);
+    font-size: 26px; font-weight: 400;
+    letter-spacing: 0.44em; text-indent: 0.44em;
+    color: var(--ink-3);
+  }
+
+  .block {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .ornament { width: 132px; height: 2px; background: var(--gold-lt); opacity: 0.9; margin-bottom: 18px; }
+
+  .title {
+    font-family: var(--f-brush);
+    font-weight: 400;
+    font-size: 196px;
+    line-height: 1.04;
+    letter-spacing: 0.015em;
+    color: var(--ink);
+  }
+  .subtitle {
+    font-family: var(--f-brush-2);
+    font-size: 44px; font-weight: 400;
+    letter-spacing: 0.14em; text-indent: 0.14em;
+    color: var(--ink-2);
+    margin-top: 12px;
+  }
+  .tagline {
+    font-family: var(--f-brush-2);
+    font-size: 29px; font-weight: 400;
+    letter-spacing: 0.10em; text-indent: 0.10em;
+    color: var(--ink-3);
+    margin-top: 12px;
+  }
+
+  .info { display: flex; flex-direction: column; }
+
+  .meta {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .meta-row { display: flex; align-items: baseline; gap: 16px; font-family: var(--f-cjk-sans); }
+  .meta-row .k {
+    color: var(--gold);
+    font-size: 22px; letter-spacing: 0.22em;
+    min-width: 118px; text-align: right;
+  }
+  .meta-row .v { color: var(--ink-2); font-size: 24px; letter-spacing: 0.02em; white-space: nowrap; }
+
+  .cta {
+    margin-top: 22px;
+    display: inline-block;
+    padding: 13px 44px;
+    border-radius: 999px;
+    background: var(--cta-bg);
+    color: var(--cta-ink);
+    font-family: var(--f-cjk-sans);
+    font-size: 25px; font-weight: 500;
+    letter-spacing: 0.20em; text-indent: 0.20em;
+    text-decoration: none;
+    align-self: flex-start;
+  }
+
+  .seal {
+    position: absolute;
+    width: 104px; height: 104px;
+    background: var(--seal);
+    color: #F3E7D3;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center; justify-items: center;
+    padding: 6px;
+  }
+  .seal span {
+    font-family: var(--f-brush-2);
+    font-size: 38px; line-height: 1;
+    color: #F3E7D3;
+  }
+
+  /* ==================================================================
+     Four layouts: body[data-comp=…] (must match the layout in plan.json)
+     Text positions correspond one-to-one to the "text zone" table in references/composition-auto.md
+     ================================================================== */
+
+  /* 1 hero-top: subject banner on top, title and exhibition info pinned bottom-left, top row is the institution */
+  [data-comp="hero-top"] .presenter { top: 3.0%; left: 0; right: 0; text-align: center; }
+  [data-comp="hero-top"] .block { left: 7%; width: 62%; bottom: 3.4%; }
+  [data-comp="hero-top"] .title { font-size: 196px; }
+  [data-comp="hero-top"] .seal { right: 7%; bottom: 26%; }
+
+  /* 2 hero-right: subject column on the right, title and exhibition info fill the left column, institution top-left */
+  [data-comp="hero-right"] .presenter { top: 3.2%; left: 6.4%; }
+  [data-comp="hero-right"] .block { left: 7%; top: 26%; width: 43%; }
+  [data-comp="hero-right"] .title { font-size: 152px; }
+  [data-comp="hero-right"] .seal { left: 7%; bottom: 12%; }
+
+  /* 3 hero-left: mirror version - subject column on the left, title and exhibition info fill the right column, right-aligned */
+  [data-comp="hero-left"] .presenter { top: 3.2%; right: 6.4%; text-align: right; }
+  [data-comp="hero-left"] .block {
+    right: 7%; top: 26%; width: 43%;
+    align-items: flex-end; text-align: right;
+  }
+  [data-comp="hero-left"] .title { font-size: 152px; }
+  [data-comp="hero-left"] .meta-row { justify-content: flex-end; }
+  [data-comp="hero-left"] .cta { align-self: flex-end; }
+  [data-comp="hero-left"] .seal { right: 7%; bottom: 12%; }
+
+  /* 4 hero-centre: subject centred as a floating island, title and exhibition info centred at the bottom */
+  [data-comp="hero-centre"] .presenter { top: 3.0%; left: 0; right: 0; text-align: center; }
+  [data-comp="hero-centre"] .block {
+    left: 10%; right: 10%; bottom: 3.0%;
+    align-items: center; text-align: center;
+  }
+  [data-comp="hero-centre"] .title { font-size: 196px; }
+  [data-comp="hero-centre"] .meta { align-items: center; }
+  [data-comp="hero-centre"] .meta-row { justify-content: center; }
+  [data-comp="hero-centre"] .cta { align-self: center; }
+  [data-comp="hero-centre"] .seal { right: 6.8%; bottom: 24%; }
+
+  /* ==================================================================
+     English typography: body[data-lang="en"] - whole site switches to Inter
+     Font sizes follow "column width / measured glyph width", not guesswork (Inter-Black @100px:
+       VISIONS 4.28em / ON THE WALL 7.03em / DUNHUANG COLOR… 19.93em).
+     A two-line title uses .l1/.l2, each filling the column width (after the reference poster's "two lines flush to the edges" setting);
+     if the title is a single line, drop .l1/.l2 and use .title's font-size directly.
+     Note: English titles have more lines and the block grows taller - under the torn-paper / banner layouts,
+     confirm the block top still sits inside the background material zone and does not press on the centre seam.
+     ================================================================== */
+  body[data-lang="en"] {
+    --f-brush:   var(--f-en);
+    --f-brush-2: var(--f-en);
+  }
+  body[data-lang="en"] .presenter {
+    font-family: var(--f-en); font-weight: 600;
+    font-size: 21px; letter-spacing: 0.30em; text-indent: 0.30em;
+  }
+  body[data-lang="en"] .title {
+    font-family: var(--f-en);
+    font-weight: 900;
+    font-size: 104px;
+    /* ⚠ line-height must be >= 1.211 (Inter's hhea line height). Below that, the glyph's
+       ascender/descender overflow the line box, so h1's scrollHeight exceeds
+       clientHeight and the machine check flags overflowY (pitfall found in practice: 0.98 -> 176px line overflows by 33px). */
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+  }
+  body[data-lang="en"] .title .l1 { display: block; font-size: 168px; }
+  body[data-lang="en"] .title .l2 { display: block; font-size: 104px; }
+  /* English title spans two lines and is taller than the Chinese, so tighten the spacing below and keep the block top inside the background material zone */
+  body[data-lang="en"] .meta { margin-top: 16px; padding-top: 12px; gap: 6px; }
+  body[data-lang="en"] .cta { margin-top: 16px; }
+  body[data-lang="en"] .subtitle {
+    font-family: var(--f-en); font-weight: 700;
+    font-size: 34px; letter-spacing: 0.02em; text-indent: 0;
+  }
+  body[data-lang="en"] .tagline {
+    font-family: var(--f-en); font-weight: 400;
+    font-size: 25px; letter-spacing: 0.03em; text-indent: 0;
+  }
+  body[data-lang="en"] .meta-row .k,
+  body[data-lang="en"] .meta-row .v { font-family: var(--f-en); }
+  body[data-lang="en"] .meta-row .k { font-size: 18px; letter-spacing: 0.16em; min-width: 104px; }
+  body[data-lang="en"] .meta-row .v { font-size: 21px; letter-spacing: 0.01em; }
+  body[data-lang="en"] .cta {
+    font-family: var(--f-en); font-weight: 700;
+    font-size: 21px; letter-spacing: 0.14em; text-indent: 0.14em;
+  }
+
+  /* ==================================================================
+     Deep-ground light-type theme: body[data-theme="deep"] (pairs with auto_compose.py --bg-mode color)
+     On a dark ground, swap the ink system for "gilt title + cream-white info + gold-base CTA";
+     set --stage-bg to the same value as your ground field (this default #1F3F6E is the Dunhuang case's deep azurite ground).
+     ================================================================== */
+  body[data-theme="deep"] {
+    --ink:     #E9C97F;              /* main title: gilt */
+    --ink-2:   #EFE6D0;              /* subtitle / exhibition values: cream-white */
+    --ink-3:   #D3C5A6;              /* short phrase / institution: dim cream-white */
+    --gold:    #EDCB8B;              /* labels: bright gold */
+    --gold-lt: #D9BC7E;              /* decorative line / CTA base */
+    --rule:    rgba(217, 188, 126, 0.45);
+    --cta-bg:  #D9BC7E;
+    --cta-ink: #23304F;
+    --stage-bg:#1F3F6E;
+  }
+
+  /* Machine-check instrument: under ?pf-qa=bg, hide all "text ink colour" (keep the seal face and button base blocks) */
+  html.pf-qa-bg [data-text] { color: transparent !important; text-shadow: none !important; }
+  html.pf-qa-bg .seal span { color: transparent !important; }
+</style>
+</head>
+<body data-comp="hero-top">
+  <div class="stage">
+    <img class="bg" src="bg.png" alt="photo-cutout-forge 背景">
+
+    <div class="type">
+      <div class="presenter" data-text="presenter">城市文化中心</div>
+
+      <div class="block">
+        <div class="ornament"></div>
+        <h1 class="title" data-text="title-main">壁上万象</h1>
+        <div class="info">
+          <div class="subtitle" data-text="title-sub">敦煌色彩数字沉浸展</div>
+          <p class="tagline" data-text="tagline">在流动的色彩中，走近千年的想象</p>
+
+          <div class="meta">
+            <div class="meta-row">
+              <span class="k" data-text="label-1">展期</span>
+              <span class="v" data-text="value-1">2026年11月8日至2027年1月18日</span>
+            </div>
+            <div class="meta-row">
+              <span class="k" data-text="label-2">开放时间</span>
+              <span class="v" data-text="value-2">周二至周日 10:00–20:00</span>
+            </div>
+            <div class="meta-row">
+              <span class="k" data-text="label-3">地点</span>
+              <span class="v" data-text="value-3">城市文化中心 一层沉浸展厅</span>
+            </div>
+          </div>
+
+          <a class="cta" href="#" data-text="cta">预约观展</a>
+        </div>
+      </div>
+
+      <div class="seal" data-text="seal"><span>壁</span><span>上</span><span>万</span><span>象</span></div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var comp = q.get('comp');
+    if (comp) document.body.setAttribute('data-comp', comp);
+    var theme = q.get('theme');
+    if (theme) document.body.setAttribute('data-theme', theme);
+    var lang = q.get('lang');
+    if (lang) document.body.setAttribute('data-lang', lang);
+    if (q.get('pf-qa') === 'bg') document.documentElement.classList.add('pf-qa-bg');
+
+    function dump() {
+      var out = [];
+      document.querySelectorAll('[data-text]').forEach(function (el) {
+        var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        out.push({
+          role: el.getAttribute('data-text'),
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          color: cs.color,
+          fontSize: parseFloat(cs.fontSize),
+          writingMode: cs.writingMode || 'horizontal-tb',
+          fontFamily: cs.fontFamily,
+          text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+          overflowX: el.scrollWidth > el.clientWidth + 4,
+          overflowY: el.scrollHeight > el.clientHeight + 4
+        });
+      });
+      var s = document.createElement('script');
+      s.type = 'application/json';
+      s.id = 'pf-boxes';
+      s.textContent = JSON.stringify(out);
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') dump();
+    else window.addEventListener('load', dump);
+  })();
+  </script>
+</body>
+</html>
